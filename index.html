@@ -656,44 +656,81 @@
     text-transform: uppercase;
   }
   .player-bottom {
-    padding: 30px 24px calc(30px + var(--safe-bottom));
-    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    padding: 20px 24px calc(24px + var(--safe-bottom));
+    background: linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.4) 70%, transparent);
     pointer-events: auto;
   }
+  .player-top-content {
+    padding: calc(8px + var(--safe-top)) 16px 12px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .player-top-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .player-timer-big {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 76px;
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.6);
+  }
+  .player-timer-big.urgent { color: var(--accent-warm); animation: pulse 1s infinite; }
+  .player-timer-big.rest { color: var(--accent-warm); font-style: italic; }
   .player-exercise-name {
     font-family: var(--display);
     font-weight: 500;
-    font-size: 38px;
-    line-height: 1;
+    font-size: 30px;
+    line-height: 1.05;
     letter-spacing: -0.03em;
     color: #fff;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.6);
   }
-  .player-exercise-muscle {
+  .player-exercise-meta {
     font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.2em;
+    font-size: 10px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 24px;
+    margin-bottom: 18px;
   }
-  .player-timer {
-    font-family: var(--display);
-    font-weight: 300;
-    font-size: 92px;
-    line-height: 1;
-    letter-spacing: -0.05em;
+  .player-equipment-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 18px;
+  }
+  .player-eq-chip {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
     color: #fff;
-    text-align: center;
-    margin: 12px 0 20px;
-    font-variant-numeric: tabular-nums;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
   }
-  .player-timer.rest { color: var(--accent-warm); font-style: italic; }
+  .player-eq-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
   .player-controls {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
   }
   .player-controls button {
     background: rgba(255,255,255,0.1);
@@ -703,18 +740,22 @@
     width: 52px; height: 52px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .player-controls .play-pause {
-    width: 72px; height: 72px;
+    width: 76px; height: 76px;
     background: var(--accent);
     color: #000;
     font-size: 26px;
     border: none;
+    box-shadow: 0 8px 24px rgba(214, 255, 61, 0.3);
   }
+  /* Hide the old timer; keep selector working but invisible */
+  .player-timer { display: none; }
+  .player-timer.rest { color: var(--accent-warm); font-style: italic; }
   .player-rest-overlay {
     position: absolute;
     inset: 0;
@@ -1149,6 +1190,9 @@
       <h2 class="section-title">Storage</h2>
       <div class="helper-text" id="storage-info">Calculating…</div>
 
+      <h2 class="section-title">History</h2>
+      <div id="history-list" class="helper-text">No classes done yet.</div>
+
       <h2 class="section-title">Add to home screen</h2>
       <div class="helper-text">
         On iPhone: tap the Share icon in Safari, then "Add to Home Screen". On Android: tap the three dots, then "Install app" or "Add to Home Screen". The app will then run fullscreen like a native app.
@@ -1349,20 +1393,24 @@
     </div>
   </div>
   <div class="player-overlay-content">
-    <div class="player-top">
-      <button class="player-close" id="player-close">×</button>
-      <div class="player-progress">
-        <div class="player-progress-track">
-          <div class="player-progress-fill" id="player-progress-fill"></div>
+    <div class="player-top-content">
+      <div class="player-top-row">
+        <button class="player-close" id="player-close">×</button>
+        <div class="player-progress">
+          <div class="player-progress-track">
+            <div class="player-progress-fill" id="player-progress-fill"></div>
+          </div>
+          <div class="player-progress-label" id="player-progress-label">1 / 1</div>
         </div>
-        <div class="player-progress-label" id="player-progress-label">1 / 1</div>
+        <div style="width:40px;"></div>
       </div>
-      <div style="width:40px;"></div>
+      <div class="player-timer-big" id="player-timer-big">00</div>
     </div>
     <div style="flex:1;"></div>
     <div class="player-bottom">
       <div class="player-exercise-name" id="player-name">Ready</div>
-      <div class="player-exercise-muscle" id="player-muscle">·</div>
+      <div class="player-exercise-meta" id="player-muscle">·</div>
+      <div class="player-equipment-row" id="player-equipment"></div>
       <div class="player-timer" id="player-timer">00</div>
       <div class="player-controls">
         <button id="player-prev">◀◀</button>
@@ -2128,12 +2176,16 @@ async function openWorkoutDetail(id) {
   const w = state.workouts.find(x => x.id === id);
   if (!w) return;
   const body = $("#wdetail-body");
+  const stats = classSessionStats(w.id);
+  const lastDoneStr = stats.lastDate ? new Date(stats.lastDate).toLocaleDateString() : null;
   body.innerHTML = `
     <div style="margin-bottom: 20px;">
       <h2 class="section-title" style="margin-top:0;">${escapeHtml(w.name)}</h2>
-      <div class="stats" style="display: flex; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--ink-dim); letter-spacing: 0.15em; text-transform: uppercase;">
+      <div class="stats" style="display: flex; flex-wrap: wrap; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--ink-dim); letter-spacing: 0.15em; text-transform: uppercase;">
         <span>${w.items.filter(i=>i.type==='exercise').length} moves</span>
         <span>${fmtTime(w.items.reduce((s,i)=>s+(i.duration||0),0))}</span>
+        <span style="color: var(--accent);">${stats.count}× done</span>
+        ${lastDoneStr ? `<span>Last: ${lastDoneStr}</span>` : ''}
       </div>
     </div>
     <div id="wdetail-list"></div>
@@ -2479,24 +2531,21 @@ function openPicker() {
   if (state.clips.length === 0) {
     body.innerHTML = `<div class="helper-text">No clips yet. Add one first.</div>`;
   } else {
-    state.clips.forEach(async clip => {
-      const url = await getBlobUrl(clip);
+    // Sort alphabetically for easier scanning
+    const sorted = [...state.clips].sort((a, b) => a.name.localeCompare(b.name));
+    sorted.forEach(clip => {
       const row = document.createElement("div");
       row.className = "picker-clip";
+      const thumbHtml = clip.thumb
+        ? `<img src="${clip.thumb}" alt="" style="width:100%; height:100%; object-fit:cover;" />`
+        : `<div style="width:100%; height:100%; background: #1a1a1a;"></div>`;
       row.innerHTML = `
-        <div class="thumb">${url ? `<video src="${url}#t=${clip.start}" muted playsinline preload="metadata"></video>` : ""}</div>
+        <div class="thumb">${thumbHtml}</div>
         <div class="info">
           <div class="nm">${escapeHtml(clip.name)}</div>
           <div class="ms">${formatMuscles(clip)} · ${(clip.end - clip.start).toFixed(1)}s</div>
         </div>
       `;
-      const v = row.querySelector("video");
-      if (v) {
-        v.addEventListener("loadedmetadata", () => { v.currentTime = clip.start; v.play().catch(()=>{}); });
-        v.addEventListener("timeupdate", () => {
-          if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) v.currentTime = clip.start;
-        });
-      }
       row.addEventListener("click", () => state.pickerCallback && state.pickerCallback(clip.id));
       body.appendChild(row);
     });
@@ -2564,28 +2613,91 @@ function buildPlan(workout) {
   return plan;
 }
 
+/* ============================================================================
+   HISTORY — track every class & exercise session
+   ========================================================================= */
+const LS_HISTORY = "loop_history";
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(LS_HISTORY)) || []; } catch { return []; }
+}
+function saveHistory(arr) { localStorage.setItem(LS_HISTORY, JSON.stringify(arr.slice(-500))); }
+
+function logClassSession(record) {
+  const all = loadHistory();
+  all.push(record);
+  saveHistory(all);
+  scheduleAutoBackup();
+}
+
+function classSessionStats(workoutId) {
+  const all = loadHistory();
+  const sessions = all.filter(r => r.type === "class" && r.workoutId === workoutId);
+  return { count: sessions.length, lastDate: sessions.length ? sessions[sessions.length-1].endedAt : null };
+}
+
+function exerciseUsageStats(clipId) {
+  const all = loadHistory();
+  let count = 0;
+  for (const r of all) {
+    if (r.type === "class" && Array.isArray(r.exercises)) {
+      count += r.exercises.filter(e => e.clipId === clipId).length;
+    }
+  }
+  return count;
+}
+
 async function startPlayer(workout) {
   if (!workout || workout.items.length === 0) return;
+
+  // Oura reminder before starting
+  const ok = await ouraReminderPrompt(workout.name);
+  if (!ok) return; // user backed out
+
   player.workout = { ...workout, plan: buildPlan(workout) };
   player.idx = 0;
   player.paused = false;
   player.totalDuration = player.workout.plan.reduce((s,i)=>s+(i.duration||0),0);
+  player.sessionStartedAt = Date.now();
+  player.sessionExercises = []; // tracks what was completed
 
   $("#player").classList.add("active");
   $("#player-complete").classList.remove("active");
 
-  // Prime speech synthesis (iOS needs a user-gesture-triggered speak first)
   primeSpeech();
 
   await loadPlayerStep();
   startTimerLoop();
 
-  // Keep screen on during workout
   try {
     if ('wakeLock' in navigator) {
       player.wakeLock = await navigator.wakeLock.request('screen');
     }
   } catch(e) {}
+}
+
+function ouraReminderPrompt(className) {
+  return new Promise((resolve) => {
+    // Build a one-time pre-flight sheet
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(12px); z-index:300; display:flex; align-items:center; justify-content:center; padding:24px;";
+    const card = document.createElement("div");
+    card.style.cssText = "background:var(--bg-elev); border:1px solid var(--line-strong); border-radius:20px; padding:28px 24px; max-width:380px; width:100%; text-align:center;";
+    card.innerHTML = `
+      <div style="font-family:var(--mono); font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--accent); margin-bottom:14px;">Before you start</div>
+      <div style="font-family:var(--display); font-style:italic; font-size:30px; line-height:1.1; color:var(--ink); margin-bottom:20px; letter-spacing:-0.02em;">Start your Oura workout</div>
+      <div style="font-size:13px; color:var(--ink-dim); margin-bottom:24px; line-height:1.5;">Open the Oura app and tag this session as a workout. Your ring won't know unless you tell it.</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button class="btn full" id="oura-done">I started it — let's go</button>
+        <button class="btn full secondary" id="oura-skip">Skip for now</button>
+        <button class="btn ghost" id="oura-cancel" style="font-size:11px; margin-top:4px;">Cancel</button>
+      </div>
+    `;
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    card.querySelector("#oura-done").addEventListener("click", () => { document.body.removeChild(overlay); resolve(true); });
+    card.querySelector("#oura-skip").addEventListener("click", () => { document.body.removeChild(overlay); resolve(true); });
+    card.querySelector("#oura-cancel").addEventListener("click", () => { document.body.removeChild(overlay); resolve(false); });
+  });
 }
 
 async function loadPlayerStep() {
@@ -2597,6 +2709,11 @@ async function loadPlayerStep() {
   player.cuedTen = false;
   player.cuedThree = player.cuedTwo = player.cuedOne = false;
   updatePlayerUI();
+
+  // Track exercise completions: when an exercise step starts, log it
+  if (item.type === "exercise") {
+    player.sessionExercises.push({ clipId: item.clipId, startedAt: Date.now() });
+  }
 
   const restOverlay = $("#player-rest");
   const setupOverlay = $("#player-setup");
@@ -2613,8 +2730,8 @@ async function loadPlayerStep() {
     $("#player-setup-timer").textContent = Math.ceil(item.duration);
     $("#player-name").textContent = "Setup";
     $("#player-muscle").textContent = item.description || "";
-    $("#player-timer").classList.remove("rest");
-    // Voice cue announcing what to set up + next exercise
+    $("#player-equipment").innerHTML = "";
+    $("#player-timer-big").classList.remove("rest", "urgent");
     const announce = `Set up: ${spokenify(item.description)}. Next exercise: ${nextClip?.name || ''}, for ${item.nextItem.duration} seconds.`;
     speak(announce);
   } else if (item.type === "rest") {
@@ -2625,7 +2742,9 @@ async function loadPlayerStep() {
     v.removeAttribute("src");
     $("#player-name").textContent = "Rest";
     $("#player-muscle").textContent = "Catch your breath";
-    $("#player-timer").classList.add("rest");
+    $("#player-equipment").innerHTML = "";
+    $("#player-timer-big").classList.add("rest");
+    $("#player-timer-big").classList.remove("urgent");
     speak(`Rest, ${item.duration} seconds`);
   } else {
     player.phase = "exercise";
@@ -2647,16 +2766,35 @@ async function loadPlayerStep() {
     };
     $("#player-name").textContent = clip.name;
     $("#player-muscle").textContent = formatMuscles(clip);
-    $("#player-timer").classList.remove("rest");
-    // Announce the exercise name as it starts (after any setup overlay)
+    $("#player-timer-big").classList.remove("rest", "urgent");
+
+    // Render equipment chips so user can see at a glance
+    const eqEl = $("#player-equipment");
+    eqEl.innerHTML = "";
+    const springColorMap = { yellow: "#f5d33d", blue: "#4ca8ff", red1: "#ff4949", red2: "#ff4949", red3: "#ff4949" };
+    (item.springs || []).forEach(sId => {
+      const s = springById(sId); if (!s) return;
+      const chip = document.createElement("span");
+      chip.className = "player-eq-chip";
+      chip.innerHTML = `<span class="dot" style="background:${springColorMap[sId]||'#888'};"></span>${s.label}`;
+      eqEl.appendChild(chip);
+    });
+    (item.equipment || []).forEach(eId => {
+      const e = equipmentById(eId); if (!e) return;
+      const chip = document.createElement("span");
+      chip.className = "player-eq-chip";
+      chip.textContent = e.label;
+      eqEl.appendChild(chip);
+    });
+
     speak(`${clip.name}. Go.`);
   }
 }
 
 function updatePlayerUI() {
   const r = Math.max(0, Math.ceil(player.remaining));
-  $("#player-timer").textContent = pad(r);
-  $("#player-timer").classList.toggle("urgent", r <= 3 && r > 0 && player.phase !== "setup");
+  $("#player-timer-big").textContent = pad(r);
+  $("#player-timer-big").classList.toggle("urgent", r <= 3 && r > 0 && player.phase !== "setup");
   $("#player-progress-label").textContent = `${player.idx + 1} / ${player.workout.plan.length}`;
   $("#player-setup-timer").textContent = r;
 
@@ -2693,24 +2831,25 @@ function checkVoiceCues(item) {
 }
 
 function startTimerLoop() {
+  // Use setInterval (reliable, ticks even in fullscreen video) instead of rAF
+  if (player.rafId) { clearInterval(player.rafId); player.rafId = null; }
   player.lastTick = performance.now();
-  function tick(now) {
-    if (!player.workout) return;
+  player.rafId = setInterval(() => {
+    if (!player.workout) { clearInterval(player.rafId); player.rafId = null; return; }
+    if (player.paused) { player.lastTick = performance.now(); return; }
+    const now = performance.now();
     const dt = (now - player.lastTick) / 1000;
     player.lastTick = now;
-    if (!player.paused) {
-      const item = player.workout.plan[player.idx];
-      player.remaining -= dt;
-      checkVoiceCues(item);
-      if (player.remaining <= 0) {
-        nextStep();
-        return;
-      }
-      updatePlayerUI();
+    const item = player.workout.plan[player.idx];
+    if (!item) return;
+    player.remaining -= dt;
+    checkVoiceCues(item);
+    if (player.remaining <= 0) {
+      nextStep();
+      return;
     }
-    player.rafId = requestAnimationFrame(tick);
-  }
-  player.rafId = requestAnimationFrame(tick);
+    updatePlayerUI();
+  }, 100); // 10x per second — smooth countdown without overhead
 }
 
 function nextStep() {
@@ -2734,9 +2873,50 @@ function completePlayer() {
   $("#player-complete").classList.add("active");
   $("#player-setup").classList.remove("active");
   $("#player-rest").classList.remove("active");
-  speak("Class complete. Nice work.");
+
+  // Log the session to history
+  const startedAt = player.sessionStartedAt;
+  const endedAt = Date.now();
+  const workout = player.workout;
+  if (workout && startedAt) {
+    const record = {
+      type: "class",
+      workoutId: workout.id,
+      workoutName: workout.name,
+      startedAt,
+      endedAt,
+      durationSeconds: Math.round((endedAt - startedAt) / 1000),
+      exercises: player.sessionExercises || [],
+    };
+    logClassSession(record);
+
+    // Update the completion screen with stats
+    const stats = classSessionStats(workout.id);
+    const durationMin = Math.round(record.durationSeconds / 60);
+    const completeEl = $("#player-complete");
+    completeEl.innerHTML = `
+      <div class="big">Done.</div>
+      <div class="page-sub" style="color: var(--ink-dim);">Nice work</div>
+      <div style="margin-top: 32px; padding: 16px 24px; background: var(--bg-elev); border: 1px solid var(--line); border-radius: 16px; min-width: 280px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-family: var(--mono); font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color: var(--ink-dim);">
+          <span>This session</span><span style="color: var(--accent);">${durationMin} min</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-family: var(--mono); font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color: var(--ink-dim);">
+          <span>Exercises</span><span style="color: var(--accent);">${record.exercises.length}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-family: var(--mono); font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color: var(--ink-dim);">
+          <span>Times done</span><span style="color: var(--accent);">${stats.count}</span>
+        </div>
+      </div>
+      <div style="margin-top: 20px; font-family: var(--mono); font-size:11px; color: var(--ink-dim); letter-spacing:0.15em; text-transform:uppercase;">Remember to stop your Oura workout</div>
+      <button class="btn" id="player-complete-close" style="margin-top: 24px;">Close</button>
+    `;
+    $("#player-complete-close").addEventListener("click", closePlayer);
+  }
+
+  speak("Class complete. Nice work. Don't forget to stop your Oura workout.");
   player.workout = null;
-  if (player.rafId) cancelAnimationFrame(player.rafId);
+  if (player.rafId) { clearInterval(player.rafId); player.rafId = null; }
   if (player.wakeLock) { try { player.wakeLock.release(); } catch(e) {} }
 }
 
@@ -2745,7 +2925,7 @@ function closePlayer() {
   $("#player-complete").classList.remove("active");
   $("#player-setup").classList.remove("active");
   $("#player-rest").classList.remove("active");
-  if (player.rafId) cancelAnimationFrame(player.rafId);
+  if (player.rafId) { clearInterval(player.rafId); player.rafId = null; }
   player.workout = null;
   const v = $("#player-video");
   v.pause();
@@ -2757,17 +2937,60 @@ function closePlayer() {
 /* ============================================================================
    SPEECH SYNTHESIS — voice cues
    ========================================================================= */
+// Cache the chosen voice
+let _chosenVoice = null;
+function pickBestVoice() {
+  if (_chosenVoice) return _chosenVoice;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  // Prefer iOS premium UK Siri voices first (high quality, natural female UK accent)
+  const preferredNames = [
+    "Serena (Enhanced)", "Serena (Premium)", "Serena",
+    "Kate (Enhanced)", "Kate (Premium)", "Kate",
+    "Martha (Enhanced)", "Martha",
+    "Daniel (Enhanced)", "Daniel",
+    "Karen (Enhanced)", "Karen",
+    "Samantha (Enhanced)", "Samantha",
+    "Ava (Enhanced)", "Ava",
+    "Allison (Enhanced)", "Allison",
+    "Susan", "Victoria", "Tessa", "Moira",
+    "Google UK English Female", "Google UK English Male",
+    "Google US English",
+  ];
+  for (const name of preferredNames) {
+    const v = voices.find(x => x.name === name);
+    if (v) { _chosenVoice = v; return v; }
+  }
+  // Fallback: any en-GB female voice
+  const ukFemale = voices.find(v => v.lang === "en-GB" && /female|serena|kate|martha|karen|moira/i.test(v.name));
+  if (ukFemale) { _chosenVoice = ukFemale; return ukFemale; }
+  // Then any en-GB voice
+  const ukAny = voices.find(v => v.lang === "en-GB");
+  if (ukAny) { _chosenVoice = ukAny; return ukAny; }
+  // Fallback: any English female voice
+  const enFemale = voices.find(v => v.lang && v.lang.startsWith("en") && /female|samantha|karen|serena|ava|allison|susan|moira|tessa/i.test(v.name));
+  if (enFemale) { _chosenVoice = enFemale; return enFemale; }
+  // Last resort: any English voice
+  const en = voices.find(v => v.lang && v.lang.startsWith("en"));
+  _chosenVoice = en || voices[0];
+  return _chosenVoice;
+}
+
+// Some browsers load voices async
+if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = () => { _chosenVoice = null; pickBestVoice(); };
+}
+
 function speak(text) {
   try {
     if (!('speechSynthesis' in window)) return;
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.05;
-    u.pitch = 1.0;
+    u.rate = 1.0;
+    u.pitch = 1.05;
     u.volume = 1.0;
-    // Pick an English voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const englishVoice = voices.find(v => v.lang && v.lang.startsWith("en"));
-    if (englishVoice) u.voice = englishVoice;
+    const v = pickBestVoice();
+    if (v) u.voice = v;
     window.speechSynthesis.speak(u);
   } catch(e) {}
 }
@@ -2775,14 +2998,13 @@ function cancelSpeech() {
   try { window.speechSynthesis.cancel(); } catch(e) {}
 }
 function primeSpeech() {
-  // iOS requires speech to start during a user gesture
   try {
+    pickBestVoice();
     const u = new SpeechSynthesisUtterance(" ");
     u.volume = 0;
     window.speechSynthesis.speak(u);
   } catch(e) {}
 }
-// Make spring/equipment descriptions sound natural when spoken
 function spokenify(desc) {
   if (!desc) return "";
   return desc
@@ -2869,6 +3091,37 @@ async function updateStorageInfo() {
   } catch {
     $("#storage-info").textContent = `${state.clips.length} clips · ${state.workouts.length} classes saved on this device.`;
   }
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = $("#history-list");
+  if (!el) return;
+  const all = loadHistory().filter(r => r.type === "class").reverse();
+  if (all.length === 0) {
+    el.innerHTML = "No classes done yet.";
+    return;
+  }
+  const totalMins = Math.round(all.reduce((s, r) => s + (r.durationSeconds || 0), 0) / 60);
+  let html = `<div style="font-family:var(--mono); font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin-bottom: 14px;">${all.length} classes · ${totalMins} min total</div>`;
+  html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+  for (const r of all.slice(0, 20)) {
+    const date = new Date(r.endedAt);
+    const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const mins = Math.round((r.durationSeconds || 0) / 60);
+    html += `
+      <div style="background: var(--bg-elev); border:1px solid var(--line); border-radius:12px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:600; font-size:13px; color: var(--ink); margin-bottom: 2px;">${escapeHtml(r.workoutName || 'Class')}</div>
+          <div style="font-family: var(--mono); font-size:10px; letter-spacing:0.1em; color: var(--ink-faint);">${dateStr} · ${timeStr}</div>
+        </div>
+        <div style="font-family:var(--mono); font-size:11px; color: var(--accent); letter-spacing:0.1em;">${mins}min</div>
+      </div>`;
+  }
+  if (all.length > 20) html += `<div style="text-align:center; margin-top: 6px; font-family:var(--mono); font-size:10px; color: var(--ink-faint); letter-spacing:0.1em;">+ ${all.length - 20} earlier</div>`;
+  html += `</div>`;
+  el.innerHTML = html;
 }
 
 /* ============================================================================
