@@ -1258,6 +1258,31 @@
         <input type="text" id="clip-credit" placeholder="@username" />
       </div>
 
+      <div class="field">
+        <label>Default springs (optional)</label>
+        <div class="tag-pills" id="clip-springs-pills">
+          <button class="spring-pill" data-spring="yellow"><span class="dot"></span>Yellow</button>
+          <button class="spring-pill" data-spring="blue"><span class="dot"></span>Blue</button>
+          <button class="spring-pill" data-spring="red1"><span class="dot"></span>Red ×1</button>
+          <button class="spring-pill" data-spring="red2"><span class="dot"></span>Red ×2</button>
+          <button class="spring-pill" data-spring="red3"><span class="dot"></span>Red ×3</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Default equipment (optional)</label>
+        <div class="equipment-grid" id="clip-equipment-pills">
+          <button class="equipment-pill" data-equipment="hand_straps"><span class="icon">✋</span>Hand straps</button>
+          <button class="equipment-pill" data-equipment="feet_straps"><span class="icon">🦶</span>Feet straps</button>
+          <button class="equipment-pill" data-equipment="ball"><span class="icon">🏀</span>Ball</button>
+          <button class="equipment-pill" data-equipment="foot_bar"><span class="icon">═</span>Foot bar</button>
+          <button class="equipment-pill" data-equipment="box_long"><span class="icon">📦</span>Box (long)</button>
+          <button class="equipment-pill" data-equipment="box_short"><span class="icon">📦</span>Box (short)</button>
+          <button class="equipment-pill" data-equipment="weights"><span class="icon">🏋️</span>Weights</button>
+          <button class="equipment-pill" data-equipment="jump_board"><span class="icon">🪜</span>Jump board</button>
+        </div>
+      </div>
+
       <button class="btn full" id="save-clip-btn">Save clip</button>
       <button class="btn full secondary" id="save-and-next-btn" style="margin-top: 10px; display:none;">Save &amp; add another from this video</button>
     </div>
@@ -1566,9 +1591,24 @@ async function renderLibrary() {
     const previewContent = clip.thumb
       ? `<img src="${clip.thumb}" alt="" style="width:100%; height:100%; object-fit:cover; display:block;" />`
       : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #1a1a1a, #0a0a0a); color: var(--ink-faint); font-family: var(--mono); font-size:10px; letter-spacing:0.15em; text-transform:uppercase;">No preview</div>`;
+
+    // Spring dots overlay (top-left of preview)
+    const springColorMap = { yellow: "#f5d33d", blue: "#4ca8ff", red1: "#ff4949", red2: "#ff4949", red3: "#ff4949" };
+    const springsHtml = (clip.defaultSprings || []).length > 0
+      ? `<div style="position:absolute; top:8px; left:8px; display:flex; gap:3px; background:rgba(0,0,0,0.6); padding:4px 6px; border-radius:999px; backdrop-filter:blur(8px);">
+          ${(clip.defaultSprings || []).map(s => `<span style="width:8px;height:8px;border-radius:50%;background:${springColorMap[s]||'#888'};border:1px solid rgba(255,255,255,0.3);"></span>`).join("")}
+        </div>`
+      : "";
+    const equipmentCount = (clip.defaultEquipment || []).length;
+    const equipHtml = equipmentCount > 0
+      ? `<div style="position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,0.6); padding:3px 8px; border-radius:999px; backdrop-filter:blur(8px); font-family:var(--mono); font-size:9px; color:var(--ink); letter-spacing:0.1em;">+${equipmentCount}</div>`
+      : "";
+
     card.innerHTML = `
       <div class="preview">
         ${previewContent}
+        ${springsHtml}
+        ${equipHtml}
         <div class="badge">${(clip.end - clip.start).toFixed(1)}s</div>
       </div>
       <div class="meta">
@@ -1692,8 +1732,8 @@ const LS_CLIPS = "loop_clips_meta";
 function persistClipsMeta() {
   // thumb URLs are stored in IndexedDB along with the blob, NOT in localStorage
   // localStorage only holds lightweight metadata
-  const meta = state.clips.map(({id, name, muscle, credit, start, end, createdAt}) =>
-    ({id, name, muscle, credit, start, end, createdAt}));
+  const meta = state.clips.map(({id, name, muscle, credit, start, end, createdAt, defaultSprings, defaultEquipment}) =>
+    ({id, name, muscle, credit, start, end, createdAt, defaultSprings: defaultSprings || [], defaultEquipment: defaultEquipment || []}));
   try {
     localStorage.setItem(LS_CLIPS, JSON.stringify(meta));
   } catch (e) {
@@ -1730,6 +1770,8 @@ function openTrimSheet() {
   $("#clip-name").value = "";
   $("#clip-credit").value = "";
   $$("#clip-muscle-pills .tag-pill").forEach(p => p.classList.remove("active"));
+  $$("#clip-springs-pills .spring-pill").forEach(p => p.classList.remove("active"));
+  $$("#clip-equipment-pills .equipment-pill").forEach(p => p.classList.remove("active"));
   state.trimMuscle = null;
   openSheet("trim");
 }
@@ -1766,6 +1808,14 @@ function initTrimEditor(fileOrBlob, existingClip = null) {
       state.trimMuscle = existingClip.muscle;
       $$("#clip-muscle-pills .tag-pill").forEach(p => {
         p.classList.toggle("active", p.dataset.muscle === existingClip.muscle);
+      });
+      const existingSprings = existingClip.defaultSprings || [];
+      $$("#clip-springs-pills .spring-pill").forEach(p => {
+        p.classList.toggle("active", existingSprings.includes(p.dataset.spring));
+      });
+      const existingEquipment = existingClip.defaultEquipment || [];
+      $$("#clip-equipment-pills .equipment-pill").forEach(p => {
+        p.classList.toggle("active", existingEquipment.includes(p.dataset.equipment));
       });
       // Editing existing clip — hide "save & add another"
       $("#save-and-next-btn").style.display = "none";
@@ -1836,6 +1886,16 @@ $$("#clip-muscle-pills .tag-pill").forEach(p => {
   });
 });
 
+// Springs are multi-select toggle (multiple reds allowed)
+$$("#clip-springs-pills .spring-pill").forEach(p => {
+  p.addEventListener("click", () => p.classList.toggle("active"));
+});
+
+// Equipment is multi-select toggle
+$$("#clip-equipment-pills .equipment-pill").forEach(p => {
+  p.addEventListener("click", () => p.classList.toggle("active"));
+});
+
 // Generate a thumbnail (JPEG data URL) from current trim start frame
 async function generateThumbnail(videoEl, atTime) {
   return new Promise((resolve) => {
@@ -1891,6 +1951,9 @@ async function saveCurrentClip(continueAdding) {
   const v = $("#trim-video");
   const thumb = await generateThumbnail(v, state.trimStart + 0.1);
 
+  const defaultSprings = $$("#clip-springs-pills .spring-pill.active").map(p => p.dataset.spring);
+  const defaultEquipment = $$("#clip-equipment-pills .equipment-pill.active").map(p => p.dataset.equipment);
+
   if (state.trimEditingId) {
     const clip = state.clips.find(c => c.id === state.trimEditingId);
     if (clip) {
@@ -1899,9 +1962,10 @@ async function saveCurrentClip(continueAdding) {
       clip.credit = $("#clip-credit").value.trim();
       clip.start = state.trimStart;
       clip.end = state.trimEnd;
+      clip.defaultSprings = defaultSprings;
+      clip.defaultEquipment = defaultEquipment;
       if (thumb) {
         clip.thumb = thumb;
-        // Update thumb in IDB
         const rec = await dbGet(STORE_CLIPS, clip.id);
         if (rec) await dbPut(STORE_CLIPS, { ...rec, thumb });
       }
@@ -1916,6 +1980,8 @@ async function saveCurrentClip(continueAdding) {
       start: state.trimStart,
       end: state.trimEnd,
       thumb: thumb || null,
+      defaultSprings,
+      defaultEquipment,
       createdAt: Date.now(),
     };
     state.clips.unshift(clip);
@@ -1923,7 +1989,6 @@ async function saveCurrentClip(continueAdding) {
     persistClipsMeta();
   }
 
-  // Restore looping playback on the trim video
   v.currentTime = state.trimStart;
   v.play().catch(() => {});
 
@@ -1938,12 +2003,14 @@ async function saveCurrentClip(continueAdding) {
     updateTrimUI();
     v.currentTime = newStart;
 
+    // Keep credit AND springs/equipment (likely same for next exercise from same video)
     const previousCredit = $("#clip-credit").value;
     $("#clip-name").value = "";
     $("#clip-credit").value = previousCredit;
     state.trimEditingId = null;
     state.trimMuscle = null;
     $$("#clip-muscle-pills .tag-pill").forEach(p => p.classList.remove("active"));
+    // Note: NOT clearing springs/equipment pills — they often stay the same
 
     flashSavedToast();
     renderLibrary();
@@ -2317,7 +2384,10 @@ $("#add-exercise-btn").addEventListener("click", () => {
   if (state.clips.length === 0) { alert("Add some clips first."); return; }
   state.pickerCallback = (clipId) => {
     const dur = parseInt($("#build-default-time").value) || 40;
-    state.buildExercises.push({ type: "exercise", clipId, duration: dur, springs: [], equipment: [] });
+    const clip = state.clips.find(c => c.id === clipId);
+    const springs = [...(clip?.defaultSprings || [])];
+    const equipment = [...(clip?.defaultEquipment || [])];
+    state.buildExercises.push({ type: "exercise", clipId, duration: dur, springs, equipment });
     const restDur = parseInt($("#build-default-rest").value) || 0;
     if (restDur > 0) state.buildExercises.push({ type: "rest", duration: restDur });
     renderBuildList();
@@ -2392,7 +2462,10 @@ function openPicker() {
 function openPickerForBuild() {
   state.pickerCallback = (clipId) => {
     const dur = parseInt($("#build-default-time").value) || 40;
-    state.buildExercises.push({ type: "exercise", clipId, duration: dur, springs: [], equipment: [] });
+    const clip = state.clips.find(c => c.id === clipId);
+    const springs = [...(clip?.defaultSprings || [])];
+    const equipment = [...(clip?.defaultEquipment || [])];
+    state.buildExercises.push({ type: "exercise", clipId, duration: dur, springs, equipment });
     const restDur = parseInt($("#build-default-rest").value) || 0;
     if (restDur > 0) state.buildExercises.push({ type: "rest", duration: restDur });
     renderBuildList();
