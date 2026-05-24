@@ -101,7 +101,7 @@
   /* Bottom nav */
   nav.tabs {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     border-top: 1px solid var(--line);
     background: rgba(10, 10, 10, 0.95);
     backdrop-filter: blur(14px);
@@ -1255,6 +1255,23 @@
       <button class="btn full warm" id="save-workout-btn" style="margin-top: 24px;">Save class</button>
     </section>
 
+    <!-- HISTORY VIEW -->
+    <section class="view" id="view-history">
+      <h1 class="page-title">Your <em>history</em></h1>
+      <p class="page-sub">Track · Reflect · Repeat</p>
+
+      <div id="history-stats" style="margin-bottom: 20px;"></div>
+
+      <div class="filter-row" id="history-filter">
+        <button class="chip active" data-range="all">All time</button>
+        <button class="chip" data-range="week">This week</button>
+        <button class="chip" data-range="month">This month</button>
+        <button class="chip" data-range="year">This year</button>
+      </div>
+
+      <div id="history-list" class="helper-text">No classes done yet.</div>
+    </section>
+
     <!-- PROFILE / SETTINGS VIEW -->
     <section class="view" id="view-profile">
       <h1 class="page-title">Loop<em>.</em></h1>
@@ -1266,7 +1283,7 @@
 
       <h2 class="section-title">Backup &amp; restore</h2>
       <div class="helper-text" style="margin-bottom: 10px;">
-        iOS sometimes clears website storage unpredictably. Back up regularly to keep your clips safe. The backup file includes videos and can be saved to iCloud / Files.
+        iOS sometimes clears website storage unpredictably. Back up regularly to keep your clips safe. The backup file includes videos, classes, and your history.
       </div>
       <button class="btn full" id="backup-btn" style="margin-bottom: 10px;">⤓ Back up everything (incl. videos)</button>
       <button class="btn full secondary" id="restore-btn">⤴ Restore from backup file</button>
@@ -1275,9 +1292,6 @@
 
       <h2 class="section-title">Storage</h2>
       <div class="helper-text" id="storage-info">Calculating…</div>
-
-      <h2 class="section-title">History</h2>
-      <div id="history-list" class="helper-text">No classes done yet.</div>
 
       <h2 class="section-title">Add to home screen</h2>
       <div class="helper-text">
@@ -1304,6 +1318,10 @@
     <button data-tab="build">
       <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
       Build
+    </button>
+    <button data-tab="history">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      History
     </button>
     <button data-tab="profile">
       <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></span>
@@ -2457,7 +2475,7 @@ async function openWorkoutDetail(id) {
   const stats = classSessionStats(w.id);
   const lastDoneStr = stats.lastDate ? new Date(stats.lastDate).toLocaleDateString() : null;
   body.innerHTML = `
-    <div style="margin-bottom: 20px;">
+    <div style="margin-bottom: 16px;">
       <h2 class="section-title" style="margin-top:0;">${escapeHtml(w.name)}</h2>
       <div class="stats" style="display: flex; flex-wrap: wrap; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--ink-dim); letter-spacing: 0.15em; text-transform: uppercase;">
         <span>${w.items.filter(i=>i.type==='exercise').length} moves</span>
@@ -2466,9 +2484,9 @@ async function openWorkoutDetail(id) {
         ${lastDoneStr ? `<span>Last: ${lastDoneStr}</span>` : ''}
       </div>
     </div>
+    <button class="btn full" id="wdetail-play" style="margin-bottom: 20px;">▶ Start class</button>
     <div id="wdetail-list"></div>
-    <button class="btn full" id="wdetail-play" style="margin-top: 20px;">▶ Start class</button>
-    <button class="btn full secondary" id="wdetail-edit" style="margin-top: 10px;">Edit</button>
+    <button class="btn full secondary" id="wdetail-edit" style="margin-top: 20px;">Edit</button>
     <button class="btn full" id="wdetail-delete" style="margin-top: 10px; background: #2a1010; color: #ff7849; border: 1px solid #5a2020;">Delete class</button>
   `;
 
@@ -3389,10 +3407,11 @@ function switchTab(name) {
   $$("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   $$(".view").forEach(v => v.classList.remove("active"));
   $(`#view-${name}`).classList.add("active");
-  $("#fab").style.display = (name === "profile") ? "none" : "flex";
+  $("#fab").style.display = (name === "profile" || name === "history") ? "none" : "flex";
   if (name === "library") renderLibrary();
   if (name === "workouts") renderWorkouts();
   if (name === "build") renderBuildList();
+  if (name === "history") renderHistory();
   if (name === "profile") updateStorageInfo();
 }
 $$("nav.tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
@@ -3409,42 +3428,114 @@ async function updateStorageInfo() {
   } catch {
     $("#storage-info").textContent = `${state.clips.length} clips · ${state.workouts.length} classes saved on this device.`;
   }
-  renderHistory();
+}
+
+let historyFilter = "all";
+
+function filterHistory(records) {
+  if (historyFilter === "all") return records;
+  const now = Date.now();
+  const cutoffs = {
+    week: now - 7 * 24 * 60 * 60 * 1000,
+    month: now - 30 * 24 * 60 * 60 * 1000,
+    year: now - 365 * 24 * 60 * 60 * 1000,
+  };
+  const cutoff = cutoffs[historyFilter];
+  return records.filter(r => (r.endedAt || 0) >= cutoff);
 }
 
 function renderHistory() {
+  const statsEl = $("#history-stats");
   const el = $("#history-list");
-  if (!el) return;
-  const all = loadHistory().filter(r => r.type === "class").reverse();
-  if (all.length === 0) {
-    el.innerHTML = "No classes done yet.";
+  if (!el || !statsEl) return;
+
+  const all = loadHistory().filter(r => r.type === "class");
+  const filtered = filterHistory(all);
+
+  // Summary stats card
+  if (filtered.length === 0) {
+    statsEl.innerHTML = "";
+    el.innerHTML = `<div class="empty-state"><div class="big">Nothing yet</div><div class="sm">${historyFilter === 'all' ? 'Finish a class and it shows up here' : 'No classes in this range'}</div></div>`;
     return;
   }
-  const totalMins = Math.round(all.reduce((s, r) => s + (r.durationSeconds || 0), 0) / 60);
-  let html = `<div style="font-family:var(--mono); font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin-bottom: 14px;">${all.length} classes · ${totalMins} min total</div>`;
-  html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
-  for (const r of all.slice(0, 30)) {
-    const start = new Date(r.startedAt || r.endedAt);
-    const end = new Date(r.endedAt);
-    const dateStr = end.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-    const startTime = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-    const endTime = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-    const mins = Math.round((r.durationSeconds || 0) / 60);
-    html += `
-      <div style="background: var(--bg-elev); border:1px solid var(--line); border-radius:12px; padding:12px 14px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
-          <div style="font-weight:600; font-size:14px; color: var(--ink);">${escapeHtml(r.workoutName || 'Class')}</div>
-          <div style="font-family:var(--mono); font-size:11px; color: var(--accent); letter-spacing:0.1em;">${mins}min</div>
-        </div>
-        <div style="font-family: var(--mono); font-size:10px; letter-spacing:0.1em; color: var(--ink-faint); text-transform: uppercase;">
-          ${dateStr} · ${startTime} → ${endTime}
-        </div>
-      </div>`;
+
+  const totalMins = Math.round(filtered.reduce((s, r) => s + (r.durationSeconds || 0), 0) / 60);
+  const totalExercises = filtered.reduce((s, r) => s + (r.exercises ? r.exercises.length : 0), 0);
+  const uniqueClasses = new Set(filtered.map(r => r.workoutId)).size;
+
+  statsEl.innerHTML = `
+    <div style="background: var(--bg-elev); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+      <div>
+        <div style="font-family: var(--display); font-weight: 400; font-size: 32px; line-height: 1; color: var(--accent); letter-spacing: -0.03em;">${filtered.length}</div>
+        <div style="font-family: var(--mono); font-size: 9px; color: var(--ink-dim); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 4px;">classes</div>
+      </div>
+      <div>
+        <div style="font-family: var(--display); font-weight: 400; font-size: 32px; line-height: 1; color: var(--accent); letter-spacing: -0.03em;">${totalMins}<span style="font-size:14px; color: var(--ink-dim); margin-left:2px;">m</span></div>
+        <div style="font-family: var(--mono); font-size: 9px; color: var(--ink-dim); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 4px;">total</div>
+      </div>
+      <div>
+        <div style="font-family: var(--display); font-weight: 400; font-size: 32px; line-height: 1; color: var(--accent); letter-spacing: -0.03em;">${totalExercises}</div>
+        <div style="font-family: var(--mono); font-size: 9px; color: var(--ink-dim); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 4px;">moves</div>
+      </div>
+    </div>
+  `;
+
+  // Group records by date (most recent first)
+  const byDay = {};
+  for (const r of filtered) {
+    const d = new Date(r.endedAt);
+    const dayKey = d.toISOString().slice(0, 10);
+    if (!byDay[dayKey]) byDay[dayKey] = [];
+    byDay[dayKey].push(r);
   }
-  if (all.length > 30) html += `<div style="text-align:center; margin-top: 6px; font-family:var(--mono); font-size:10px; color: var(--ink-faint); letter-spacing:0.1em;">+ ${all.length - 30} earlier</div>`;
-  html += `</div>`;
+  const dayKeys = Object.keys(byDay).sort().reverse();
+
+  let html = "";
+  for (const dayKey of dayKeys) {
+    const dayDate = new Date(dayKey + "T00:00:00");
+    const today = new Date(); today.setHours(0,0,0,0);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    let dayLabel;
+    if (dayDate.getTime() === today.getTime()) dayLabel = "Today";
+    else if (dayDate.getTime() === yesterday.getTime()) dayLabel = "Yesterday";
+    else dayLabel = dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+
+    html += `<div style="font-family:var(--mono); font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-dim); margin: 24px 0 10px;">${dayLabel}</div>`;
+    html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+    // Sort same-day records, most recent first
+    const sortedDay = byDay[dayKey].sort((a,b) => (b.endedAt||0) - (a.endedAt||0));
+    for (const r of sortedDay) {
+      const start = new Date(r.startedAt || r.endedAt);
+      const end = new Date(r.endedAt);
+      const startTime = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      const endTime = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      const mins = Math.round((r.durationSeconds || 0) / 60);
+      const exerciseCount = r.exercises ? r.exercises.length : 0;
+      html += `
+        <div style="background: var(--bg-elev); border:1px solid var(--line); border-radius:14px; padding:14px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 8px;">
+            <div style="font-family: var(--display); font-weight:500; font-size: 18px; color: var(--ink); letter-spacing: -0.015em; flex: 1; min-width: 0; padding-right: 8px;">${escapeHtml(r.workoutName || 'Class')}</div>
+            <div style="font-family:var(--mono); font-size:11px; color: var(--accent); letter-spacing:0.1em; white-space: nowrap;">${mins} min</div>
+          </div>
+          <div style="font-family: var(--mono); font-size:10px; letter-spacing:0.12em; color: var(--ink-faint); text-transform: uppercase;">
+            ${startTime} → ${endTime} · ${exerciseCount} moves
+          </div>
+        </div>`;
+    }
+    html += `</div>`;
+  }
   el.innerHTML = html;
 }
+
+// History filter chip clicks
+document.addEventListener("click", (e) => {
+  const chip = e.target.closest("#history-filter .chip");
+  if (!chip) return;
+  $$("#history-filter .chip").forEach(c => c.classList.remove("active"));
+  chip.classList.add("active");
+  historyFilter = chip.dataset.range;
+  renderHistory();
+});
 
 /* ============================================================================
    BACKUP & RESTORE — includes video blobs
@@ -3502,11 +3593,12 @@ $("#backup-btn").addEventListener("click", async () => {
     }
 
     const backup = {
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       appName: "Loop",
       clips: clipsWithBlobs,
       workouts: state.workouts,
+      history: loadHistory(),
     };
 
     setBackupProgress("Saving file...");
@@ -3588,13 +3680,30 @@ $("#restore-file").addEventListener("change", async (e) => {
       }
     }
 
+    // Merge history (de-dup by startedAt + workoutId)
+    let historyAdded = 0;
+    if (Array.isArray(data.history) && data.history.length > 0) {
+      const existing = loadHistory();
+      const existingKeys = new Set(existing.map(r => `${r.workoutId}:${r.startedAt}`));
+      const merged = [...existing];
+      for (const r of data.history) {
+        const key = `${r.workoutId}:${r.startedAt}`;
+        if (!existingKeys.has(key)) {
+          merged.push(r);
+          historyAdded++;
+        }
+      }
+      merged.sort((a, b) => (a.endedAt || 0) - (b.endedAt || 0));
+      saveHistory(merged);
+    }
+
     persistClipsMeta();
     saveWorkouts(state.workouts);
     setBackupProgress("");
     await renderLibrary();
     renderWorkouts();
     updateStorageInfo();
-    alert(`Restored ${added} clip(s) and ${workoutsAdded} class(es).`);
+    alert(`Restored ${added} clip(s), ${workoutsAdded} class(es), and ${historyAdded} history entries.`);
   } catch (err) {
     setBackupProgress("");
     alert("Restore failed: " + err.message);
@@ -3671,11 +3780,12 @@ async function saveAutoBackup() {
     }
 
     const backup = {
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       auto: true,
       clips: clipsWithBlobs,
       workouts: state.workouts,
+      history: loadHistory(),
     };
 
     const handle = await dir.getFileHandle(OPFS_BACKUP_NAME, { create: true });
@@ -3842,13 +3952,17 @@ async function restoreFromAutoBackup(backup) {
       if (blob) await dbPut(STORE_CLIPS, { id: meta.id, blob, thumb: meta.thumb });
     }
     state.workouts = backup.workouts || [];
+    if (Array.isArray(backup.history)) {
+      saveHistory(backup.history);
+    }
     _origPersistClipsMeta();
     _origSaveWorkouts(state.workouts);
     setBackupProgress("");
     await renderLibrary();
     renderWorkouts();
     updateBackupStatus();
-    alert("Restored " + clips.length + " clips and " + (backup.workouts||[]).length + " classes from auto-backup.");
+    const histCount = (backup.history || []).length;
+    alert(`Restored ${clips.length} clip(s), ${(backup.workouts||[]).length} class(es), and ${histCount} history entries.`);
   } catch (e) {
     setBackupProgress("");
     alert("Restore failed: " + e.message);
