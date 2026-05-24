@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0a0a0a" />
+<title>Loop — Workout Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-elev: #141414;
+    --bg-elev-2: #1c1c1c;
+    --ink: #f5f1ea;
+    --ink-dim: #9a948b;
+    --ink-faint: #5a564f;
+    --accent: #d6ff3d;
+    --accent-warm: #ff7849;
+    --line: #25231f;
+    --line-strong: #3a382f;
+    --display: "Fraunces", Georgia, serif;
+    --sans: "Inter Tight", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  /* Background atmosphere */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(214, 255, 61, 0.08), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(255, 120, 73, 0.06), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.94 0 0 0 0 0.91 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: overlay;
+  }
+
+  #app { position: relative; z-index: 1; flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* Header */
+  header.app-header {
+    padding: 18px 20px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .logo {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: -0.03em;
+    font-style: italic;
+  }
+  .logo span { color: var(--accent); }
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 2px;
+  }
+
+  /* Bottom nav */
+  nav.tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--line);
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(14px);
+  }
+  nav.tabs button {
+    background: none;
+    border: none;
+    color: var(--ink-faint);
+    padding: 14px 4px calc(14px + var(--safe-bottom));
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+  }
+  nav.tabs button.active { color: var(--accent); }
+  nav.tabs button .ico {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  nav.tabs button svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+
+  /* Main views */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 18px 40px;
+  }
+  .view { display: none; animation: fadeIn 0.3s ease; }
+  .view.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* Typography */
+  h1.page-title {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 42px;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    margin-bottom: 4px;
+  }
+  h1.page-title em { font-style: italic; color: var(--accent); }
+  .page-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 24px;
+  }
+  h2.section-title {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    margin: 28px 0 12px;
+  }
+
+  /* Buttons */
+  .btn {
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    padding: 14px 22px;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn.secondary { background: var(--bg-elev-2); color: var(--ink); border: 1px solid var(--line-strong); }
+  .btn.ghost { background: transparent; color: var(--ink-dim); }
+  .btn.warm { background: var(--accent-warm); color: #fff; }
+  .btn.full { width: 100%; justify-content: center; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Clip library grid */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin: 0 -18px 18px;
+    padding: 0 18px 4px;
+    scrollbar-width: none;
+  }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .chip {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .chip.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .clip-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .clip-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .clip-card:active { transform: scale(0.98); }
+  .clip-card.selected { border-color: var(--accent); }
+  .clip-card .preview {
+    aspect-ratio: 4 / 5;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+  }
+  .clip-card video {
+    width: 100%; height: 100%; object-fit: cover;
+    pointer-events: none;
+  }
+  .clip-card .meta { padding: 10px 12px 12px; }
+  .clip-card .name {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .clip-card .muscle {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .clip-card .credit {
+    font-size: 10px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .clip-card .badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.1em;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-faint);
+  }
+  .empty-state .big {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 30px;
+    color: var(--ink-dim);
+    margin-bottom: 8px;
+  }
+  .empty-state .sm {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* Floating action */
+  .fab {
+    position: fixed;
+    bottom: calc(90px + var(--safe-bottom));
+    right: 20px;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(214, 255, 61, 0.3), 0 4px 12px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+    transition: transform 0.15s;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* Modal / Sheet */
+  .sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    display: none;
+    animation: fadeIn 0.2s;
+  }
+  .sheet-overlay.active { display: block; }
+  .sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-elev);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    z-index: 101;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 92vh;
+    overflow-y: auto;
+    padding-bottom: calc(20px + var(--safe-bottom));
+  }
+  .sheet.active { transform: translateY(0); }
+  .sheet-handle {
+    width: 40px; height: 4px;
+    background: var(--line-strong);
+    border-radius: 2px;
+    margin: 12px auto 4px;
+  }
+  .sheet-header {
+    padding: 14px 20px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sheet-header h3 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+  .sheet-close {
+    background: var(--bg-elev-2);
+    border: none;
+    color: var(--ink);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .sheet-body { padding: 20px; }
+
+  /* Form */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 8px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-family: var(--sans);
+    font-size: 15px;
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+
+  /* Video trim UI */
+  .trim-stage {
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .trim-stage video {
+    width: 100%;
+    display: block;
+    max-height: 50vh;
+    background: #000;
+  }
+  .trim-controls {
+    background: var(--bg-elev-2);
+    padding: 16px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+  .trim-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .trim-time {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+  .trim-time strong { color: var(--accent); }
+  .trim-slider {
+    width: 100%;
+    position: relative;
+    height: 40px;
+    margin: 8px 0;
+  }
+  .trim-slider input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    pointer-events: none;
+    height: 40px;
+  }
+  .trim-slider input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  .trim-slider input[type=range]::-moz-range-thumb {
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .trim-track {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0; right: 0;
+    height: 6px;
+    background: var(--line-strong);
+    border-radius: 3px;
+  }
+  .trim-track-active {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+  .trim-actions { display: flex; gap: 8px; }
+  .trim-actions button { flex: 1; }
+
+  /* Workout builder */
+  .workout-list {
+    margin: 16px 0;
+  }
+  .exercise-row {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .exercise-row .thumb {
+    width: 56px; height: 56px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+    flex-shrink: 0;
+  }
+  .exercise-row .thumb video {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .exercise-row .info { flex: 1; min-width: 0; }
+  .exercise-row .info .nm {
+    font-weight: 600; font-size: 14px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .exercise-row .info .tm {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+  .exercise-row .actions {
+    display: flex;
+    gap: 4px;
+  }
+  .icon-btn {
+    width: 32px; height: 32px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink-dim);
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn.danger { color: var(--accent-warm); }
+  .rest-row {
+    background: rgba(255, 120, 73, 0.08);
+    border: 1px dashed rgba(255, 120, 73, 0.3);
+    border-radius: 14px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-warm);
+  }
+
+  .workout-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .workout-card .nm {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .workout-card .stats {
+    display: flex;
+    gap: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .workout-card .stats strong { color: var(--accent); font-weight: 500; }
+
+  /* Player */
+  .player-overlay {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+  }
+  .player-overlay.active { display: flex; }
+  .player-video-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .player-video-wrap video {
+    width: 100%; height: 100%; object-fit: contain;
+  }
+  .player-overlay-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+  }
+  .player-top {
+    padding: calc(20px + var(--safe-top)) 20px 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    pointer-events: auto;
+  }
+  .player-close {
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .player-progress {
+    flex: 1;
+    margin: 0 16px;
+  }
+  .player-progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .player-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+  }
+  .player-progress-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 6px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .player-bottom {
+    padding: 30px 24px calc(30px + var(--safe-bottom));
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    pointer-events: auto;
+  }
+  .player-exercise-name {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .player-exercise-muscle {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+  .player-timer {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 92px;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: #fff;
+    text-align: center;
+    margin: 12px 0 20px;
+    font-variant-numeric: tabular-nums;
+  }
+  .player-timer.rest { color: var(--accent-warm); font-style: italic; }
+  .player-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+  }
+  .player-controls button {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .player-controls .play-pause {
+    width: 72px; height: 72px;
+    background: var(--accent);
+    color: #000;
+    font-size: 26px;
+    border: none;
+  }
+  .player-rest-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(255, 120, 73, 0.25), rgba(0,0,0,0.85));
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .player-rest-overlay.active { display: flex; }
+  .player-rest-label {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 80px;
+    color: var(--accent-warm);
+    letter-spacing: -0.03em;
+  }
+  .player-complete {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 40px;
+  }
+  .player-complete.active { display: flex; }
+  .player-complete .big {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 64px;
+    line-height: 1;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .helper-text {
+    font-size: 13px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  /* Tag pills */
+  .tag-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .tag-pill {
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .tag-pill.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+
+  /* Picker for clips when building workout */
+  .picker-clip {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .picker-clip .thumb {
+    width: 50px; height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+    flex-shrink: 0;
+  }
+  .picker-clip .thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .picker-clip .info { flex: 1; min-width: 0; }
+  .picker-clip .info .nm {
+    font-weight: 600; font-size: 13px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .picker-clip .info .ms {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-faint); letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  .duration-input {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px;
+  }
+  .duration-input input {
+    width: 80px;
+    text-align: center;
+  }
+  .duration-input span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Pulse animation for active player */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .player-timer.urgent { animation: pulse 1s infinite; color: var(--accent-warm); }
+
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="app-header">
+    <div>
+      <div class="logo">Loop<span>.</span></div>
+      <div class="logo-sub">Move · Build · Play</div>
+    </div>
+    <button class="btn ghost" id="install-hint" style="display:none; font-size: 11px;">Add to home</button>
+  </header>
+
+  <main>
+    <!-- LIBRARY VIEW -->
+    <section class="view active" id="view-library">
+      <h1 class="page-title">Your <em>clips</em></h1>
+      <p class="page-sub">Trim · Tag · Loop</p>
+
+      <div class="filter-row" id="muscle-filter">
+        <button class="chip active" data-muscle="all">All</button>
+        <button class="chip" data-muscle="legs">Legs</button>
+        <button class="chip" data-muscle="glutes">Glutes</button>
+        <button class="chip" data-muscle="core">Core</button>
+        <button class="chip" data-muscle="chest">Chest</button>
+        <button class="chip" data-muscle="back">Back</button>
+        <button class="chip" data-muscle="shoulders">Shoulders</button>
+        <button class="chip" data-muscle="arms">Arms</button>
+        <button class="chip" data-muscle="cardio">Cardio</button>
+        <button class="chip" data-muscle="mobility">Mobility</button>
+        <button class="chip" data-muscle="full-body">Full body</button>
+      </div>
+
+      <div class="clip-grid" id="clip-grid"></div>
+      <div class="empty-state" id="clip-empty" style="display:none;">
+        <div class="big">No clips yet</div>
+        <div class="sm">Tap + to add your first one</div>
+      </div>
+    </section>
+
+    <!-- WORKOUTS VIEW -->
+    <section class="view" id="view-workouts">
+      <h1 class="page-title">Your <em>classes</em></h1>
+      <p class="page-sub">Sequence · Time · Play</p>
+
+      <div id="workout-list"></div>
+      <div class="empty-state" id="workout-empty" style="display:none;">
+        <div class="big">No classes yet</div>
+        <div class="sm">Add clips first, then build one</div>
+      </div>
+    </section>
+
+    <!-- BUILD VIEW -->
+    <section class="view" id="view-build">
+      <h1 class="page-title">Build a <em>class</em></h1>
+      <p class="page-sub">Pick clips · Set timing</p>
+
+      <div class="field">
+        <label>Class name</label>
+        <input type="text" id="build-name" placeholder="Monday burn" />
+      </div>
+
+      <div class="field">
+        <label>Default exercise time (seconds)</label>
+        <input type="number" id="build-default-time" value="40" min="5" max="600" />
+      </div>
+
+      <div class="field">
+        <label>Default rest (seconds)</label>
+        <input type="number" id="build-default-rest" value="15" min="0" max="600" />
+      </div>
+
+      <h2 class="section-title">Exercises</h2>
+      <div id="build-list"></div>
+
+      <button class="btn full secondary" id="add-exercise-btn" style="margin-top: 12px;">+ Add exercise</button>
+      <button class="btn full secondary" id="add-rest-btn" style="margin-top: 8px;">+ Add custom rest</button>
+
+      <button class="btn full warm" id="save-workout-btn" style="margin-top: 24px;">Save class</button>
+    </section>
+
+    <!-- PROFILE / SETTINGS VIEW -->
+    <section class="view" id="view-profile">
+      <h1 class="page-title">Loop<em>.</em></h1>
+      <p class="page-sub">About · Storage · Export</p>
+
+      <div class="helper-text" style="margin-bottom: 24px;">
+        Built for trimming exercise clips from any video on your phone, tagging them by muscle group, and stringing them into timed workout classes. Everything lives privately on this device.
+      </div>
+
+      <h2 class="section-title">Storage</h2>
+      <div class="helper-text" id="storage-info">Calculating…</div>
+
+      <h2 class="section-title">Data</h2>
+      <button class="btn full secondary" id="export-btn" style="margin-bottom: 10px;">Export all data (JSON)</button>
+      <button class="btn full secondary" id="import-btn">Import data</button>
+      <input type="file" id="import-file" accept="application/json" style="display:none;" />
+
+      <h2 class="section-title">Add to home screen</h2>
+      <div class="helper-text">
+        On iPhone: tap the Share icon in Safari, then "Add to Home Screen". On Android: tap the three dots, then "Install app" or "Add to Home Screen". The app will then run fullscreen like a native app.
+      </div>
+
+      <h2 class="section-title">Danger zone</h2>
+      <button class="btn full" id="reset-btn" style="background: #2a1010; color: #ff7849; border: 1px solid #5a2020;">Delete everything</button>
+    </section>
+
+  </main>
+
+  <button class="fab" id="fab">+</button>
+
+  <nav class="tabs">
+    <button data-tab="library" class="active">
+      <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      Clips
+    </button>
+    <button data-tab="workouts">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+      Classes
+    </button>
+    <button data-tab="build">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>
+      Build
+    </button>
+    <button data-tab="profile">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></span>
+      Me
+    </button>
+  </nav>
+</div>
+
+<!-- Trim sheet -->
+<div class="sheet-overlay" id="trim-overlay"></div>
+<div class="sheet" id="trim-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h3>New clip</h3>
+    <button class="sheet-close" data-close="trim">×</button>
+  </div>
+  <div class="sheet-body">
+    <div id="trim-step-upload">
+      <div class="helper-text">
+        Pick a video from your phone, then scrub to choose the loop. Keep clips short (2–8 seconds is ideal).
+      </div>
+      <label for="video-input" class="btn full" style="cursor:pointer; display:flex;">
+        Choose video from phone
+      </label>
+      <input type="file" id="video-input" accept="video/*" style="position:absolute; opacity:0; pointer-events:none; width:0; height:0;" />
+      <div class="helper-text" style="margin-top: 14px; font-size: 11px; text-align: center;">
+        Or use the buttons below if the picker doesn't open:
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <label for="video-input-camera" class="btn secondary" style="flex:1; cursor:pointer; display:flex; justify-content:center;">📷 Record new</label>
+        <input type="file" id="video-input-camera" accept="video/*" capture="environment" style="position:absolute; opacity:0; pointer-events:none; width:0; height:0;" />
+      </div>
+    </div>
+
+    <div id="trim-step-edit" style="display:none;">
+      <div class="trim-stage">
+        <video id="trim-video" playsinline muted loop preload="auto"></video>
+      </div>
+
+      <div class="trim-controls">
+        <div class="trim-row">
+          <span class="trim-time">Start <strong id="trim-start-label">0.0s</strong></span>
+          <span class="trim-time">End <strong id="trim-end-label">0.0s</strong></span>
+        </div>
+        <div class="trim-slider">
+          <div class="trim-track"></div>
+          <div class="trim-track-active" id="trim-track-active"></div>
+          <input type="range" id="trim-start" min="0" max="100" step="0.1" value="0" />
+          <input type="range" id="trim-end" min="0" max="100" step="0.1" value="100" />
+        </div>
+        <div class="trim-row">
+          <span class="trim-time">Duration <strong id="trim-duration-label">0.0s</strong></span>
+        </div>
+        <div class="trim-actions">
+          <button class="btn secondary" id="preview-loop-btn">Preview loop</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Exercise name</label>
+        <input type="text" id="clip-name" placeholder="Bulgarian split squat" />
+      </div>
+
+      <div class="field">
+        <label>Muscle group</label>
+        <div class="tag-pills" id="clip-muscle-pills">
+          <button class="tag-pill" data-muscle="legs">Legs</button>
+          <button class="tag-pill" data-muscle="glutes">Glutes</button>
+          <button class="tag-pill" data-muscle="core">Core</button>
+          <button class="tag-pill" data-muscle="chest">Chest</button>
+          <button class="tag-pill" data-muscle="back">Back</button>
+          <button class="tag-pill" data-muscle="shoulders">Shoulders</button>
+          <button class="tag-pill" data-muscle="arms">Arms</button>
+          <button class="tag-pill" data-muscle="cardio">Cardio</button>
+          <button class="tag-pill" data-muscle="mobility">Mobility</button>
+          <button class="tag-pill" data-muscle="full-body">Full body</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Credit (creator's @handle or name)</label>
+        <input type="text" id="clip-credit" placeholder="@username" />
+      </div>
+
+      <button class="btn full" id="save-clip-btn">Save clip</button>
+      <button class="btn full secondary" id="save-and-next-btn" style="margin-top: 10px; display:none;">Save &amp; add another from this video</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clip detail sheet -->
+<div class="sheet-overlay" id="detail-overlay"></div>
+<div class="sheet" id="detail-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h3>Clip</h3>
+    <button class="sheet-close" data-close="detail">×</button>
+  </div>
+  <div class="sheet-body" id="detail-body"></div>
+</div>
+
+<!-- Clip picker sheet (for workout builder) -->
+<div class="sheet-overlay" id="picker-overlay"></div>
+<div class="sheet" id="picker-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h3>Pick a clip</h3>
+    <button class="sheet-close" data-close="picker">×</button>
+  </div>
+  <div class="sheet-body" id="picker-body"></div>
+</div>
+
+<!-- Workout detail sheet -->
+<div class="sheet-overlay" id="wdetail-overlay"></div>
+<div class="sheet" id="wdetail-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h3>Class</h3>
+    <button class="sheet-close" data-close="wdetail">×</button>
+  </div>
+  <div class="sheet-body" id="wdetail-body"></div>
+</div>
+
+<!-- Player overlay -->
+<div class="player-overlay" id="player">
+  <div class="player-video-wrap">
+    <video id="player-video" playsinline muted loop autoplay></video>
+    <div class="player-rest-overlay" id="player-rest">
+      <div class="player-rest-label">rest</div>
+    </div>
+  </div>
+  <div class="player-overlay-content">
+    <div class="player-top">
+      <button class="player-close" id="player-close">×</button>
+      <div class="player-progress">
+        <div class="player-progress-track">
+          <div class="player-progress-fill" id="player-progress-fill"></div>
+        </div>
+        <div class="player-progress-label" id="player-progress-label">1 / 1</div>
+      </div>
+      <div style="width:40px;"></div>
+    </div>
+    <div style="flex:1;"></div>
+    <div class="player-bottom">
+      <div class="player-exercise-name" id="player-name">Ready</div>
+      <div class="player-exercise-muscle" id="player-muscle">·</div>
+      <div class="player-timer" id="player-timer">00</div>
+      <div class="player-controls">
+        <button id="player-prev">◀◀</button>
+        <button class="play-pause" id="player-playpause">▶</button>
+        <button id="player-next">▶▶</button>
+      </div>
+    </div>
+  </div>
+  <div class="player-complete" id="player-complete">
+    <div class="big">Done.</div>
+    <div class="page-sub" style="color: var(--ink-dim);">Nice work</div>
+    <button class="btn" id="player-complete-close" style="margin-top: 30px;">Close</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   STORAGE LAYER — IndexedDB for video blobs + localStorage for metadata
+   ========================================================================= */
+const DB_NAME = "loop_workout_db";
+const DB_VERSION = 1;
+const STORE_CLIPS = "clips";
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_CLIPS)) {
+        db.createObjectStore(STORE_CLIPS, { keyPath: "id" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPut(store, value) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, "readwrite");
+    tx.objectStore(store).put(value);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function dbGet(store, key) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, "readonly");
+    const r = tx.objectStore(store).get(key);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function dbGetAll(store) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, "readonly");
+    const r = tx.objectStore(store).getAll();
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function dbDelete(store, key) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, "readwrite");
+    tx.objectStore(store).delete(key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function dbClear(store) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, "readwrite");
+    tx.objectStore(store).clear();
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+const LS_WORKOUTS = "loop_workouts";
+
+function getWorkouts() {
+  try { return JSON.parse(localStorage.getItem(LS_WORKOUTS)) || []; } catch { return []; }
+}
+function saveWorkouts(arr) { localStorage.setItem(LS_WORKOUTS, JSON.stringify(arr)); }
+
+/* ============================================================================
+   STATE
+   ========================================================================= */
+const state = {
+  clips: [], // {id, name, muscle, credit, start, end, blobId, createdAt}
+  workouts: [],
+  blobUrls: {}, // id -> object URL
+  activeMuscle: "all",
+  currentTab: "library",
+  // trim sheet
+  trimFile: null,
+  trimDuration: 0,
+  trimStart: 0,
+  trimEnd: 0,
+  trimMuscle: null,
+  trimEditingId: null, // if editing an existing clip
+  // build state
+  buildExercises: [], // [{type: 'exercise', clipId, duration} or {type: 'rest', duration}]
+  buildEditingId: null,
+  pickerCallback: null,
+};
+
+/* ============================================================================
+   UTILS
+   ========================================================================= */
+const $ = (s, p = document) => p.querySelector(s);
+const $$ = (s, p = document) => Array.from(p.querySelectorAll(s));
+const fmtTime = (s) => {
+  if (s < 60) return `${Math.ceil(s)}s`;
+  const m = Math.floor(s / 60); const r = Math.ceil(s % 60);
+  return `${m}m ${r}s`;
+};
+const pad = (n) => String(n).padStart(2, "0");
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+async function getBlobUrl(clip) {
+  if (state.blobUrls[clip.id]) return state.blobUrls[clip.id];
+  const rec = await dbGet(STORE_CLIPS, clip.id);
+  if (!rec || !rec.blob) return null;
+  const url = URL.createObjectURL(rec.blob);
+  state.blobUrls[clip.id] = url;
+  return url;
+}
+
+/* ============================================================================
+   RENDER: Library
+   ========================================================================= */
+async function renderLibrary() {
+  const grid = $("#clip-grid");
+  const empty = $("#clip-empty");
+  grid.innerHTML = "";
+
+  const filtered = state.activeMuscle === "all"
+    ? state.clips
+    : state.clips.filter(c => c.muscle === state.activeMuscle);
+
+  if (filtered.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  for (const clip of filtered) {
+    const card = document.createElement("div");
+    card.className = "clip-card";
+    card.dataset.id = clip.id;
+    const previewContent = clip.thumb
+      ? `<img src="${clip.thumb}" alt="" style="width:100%; height:100%; object-fit:cover; display:block;" />`
+      : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #1a1a1a, #0a0a0a); color: var(--ink-faint); font-family: var(--mono); font-size:10px; letter-spacing:0.15em; text-transform:uppercase;">No preview</div>`;
+    card.innerHTML = `
+      <div class="preview">
+        ${previewContent}
+        <div class="badge">${(clip.end - clip.start).toFixed(1)}s</div>
+      </div>
+      <div class="meta">
+        <div class="name">${escapeHtml(clip.name)}</div>
+        <div class="muscle">${clip.muscle || "untagged"}</div>
+        ${clip.credit ? `<div class="credit">via ${escapeHtml(clip.credit)}</div>` : ""}
+      </div>
+    `;
+    card.addEventListener("click", () => openClipDetail(clip.id));
+    grid.appendChild(card);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ============================================================================
+   CLIP DETAIL SHEET
+   ========================================================================= */
+async function openClipDetail(id) {
+  const clip = state.clips.find(c => c.id === id);
+  if (!clip) return;
+  const url = await getBlobUrl(clip);
+  const body = $("#detail-body");
+  body.innerHTML = `
+    <div class="trim-stage" style="margin-bottom: 16px;">
+      ${url ? `<video src="${url}" id="detail-video" muted playsinline loop preload="auto"></video>` : ""}
+    </div>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="detail-name" value="${escapeHtml(clip.name)}" />
+    </div>
+    <div class="field">
+      <label>Muscle group</label>
+      <div class="tag-pills" id="detail-muscle-pills">
+        ${["legs","glutes","core","chest","back","shoulders","arms","cardio","mobility","full-body"]
+          .map(m => `<button class="tag-pill ${clip.muscle === m ? 'active' : ''}" data-muscle="${m}">${m}</button>`).join("")}
+      </div>
+    </div>
+    <div class="field">
+      <label>Credit</label>
+      <input type="text" id="detail-credit" value="${escapeHtml(clip.credit || '')}" placeholder="@creator" />
+    </div>
+    <div class="field">
+      <label>Trim range</label>
+      <div class="helper-text" id="detail-trim-info">Start ${clip.start.toFixed(2)}s · End ${clip.end.toFixed(2)}s · ${(clip.end - clip.start).toFixed(1)}s loop</div>
+      <button class="btn secondary full" id="detail-retrim">Re-trim</button>
+    </div>
+    <button class="btn full" id="detail-save">Save changes</button>
+    <button class="btn full" id="detail-delete" style="margin-top: 10px; background: #2a1010; color: #ff7849; border: 1px solid #5a2020;">Delete clip</button>
+  `;
+
+  // Loop the detail video
+  const v = $("#detail-video");
+  if (v) {
+    v.addEventListener("loadedmetadata", () => {
+      v.currentTime = clip.start;
+      v.play().catch(() => {});
+    });
+    v.addEventListener("timeupdate", () => {
+      if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) {
+        v.currentTime = clip.start;
+      }
+    });
+  }
+
+  let editMuscle = clip.muscle;
+  $$("#detail-muscle-pills .tag-pill").forEach(p => {
+    p.addEventListener("click", () => {
+      $$("#detail-muscle-pills .tag-pill").forEach(x => x.classList.remove("active"));
+      p.classList.add("active");
+      editMuscle = p.dataset.muscle;
+    });
+  });
+
+  $("#detail-save").addEventListener("click", () => {
+    clip.name = $("#detail-name").value.trim() || clip.name;
+    clip.muscle = editMuscle;
+    clip.credit = $("#detail-credit").value.trim();
+    persistClipsMeta();
+    closeSheet("detail");
+    renderLibrary();
+  });
+
+  $("#detail-delete").addEventListener("click", async () => {
+    if (!confirm("Delete this clip? This cannot be undone.")) return;
+    await deleteClip(id);
+    closeSheet("detail");
+  });
+
+  $("#detail-retrim").addEventListener("click", async () => {
+    state.trimEditingId = clip.id;
+    closeSheet("detail");
+    const rec = await dbGet(STORE_CLIPS, clip.id);
+    state.trimFile = rec.blob;
+    openSheet("trim");
+    $("#trim-step-upload").style.display = "none";
+    $("#trim-step-edit").style.display = "block";
+    initTrimEditor(rec.blob, clip);
+  });
+
+  openSheet("detail");
+}
+
+async function deleteClip(id) {
+  state.clips = state.clips.filter(c => c.id !== id);
+  // Remove from any workouts
+  state.workouts.forEach(w => {
+    w.items = w.items.filter(it => it.type !== "exercise" || it.clipId !== id);
+  });
+  if (state.blobUrls[id]) { URL.revokeObjectURL(state.blobUrls[id]); delete state.blobUrls[id]; }
+  await dbDelete(STORE_CLIPS, id);
+  persistClipsMeta();
+  saveWorkouts(state.workouts);
+  renderLibrary();
+  renderWorkouts();
+}
+
+const LS_CLIPS = "loop_clips_meta";
+function persistClipsMeta() {
+  // thumb URLs are stored in IndexedDB along with the blob, NOT in localStorage
+  // localStorage only holds lightweight metadata
+  const meta = state.clips.map(({id, name, muscle, credit, start, end, createdAt}) =>
+    ({id, name, muscle, credit, start, end, createdAt}));
+  try {
+    localStorage.setItem(LS_CLIPS, JSON.stringify(meta));
+  } catch (e) {
+    debugLog("LocalStorage error: " + e.message);
+  }
+}
+function loadClipsMeta() {
+  try { return JSON.parse(localStorage.getItem(LS_CLIPS)) || []; } catch { return []; }
+}
+
+/* ============================================================================
+   TRIM SHEET — Upload + scrub
+   ========================================================================= */
+function handleFabTap(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  try {
+    debugLog("FAB tapped. Tab=" + state.currentTab);
+    if (state.currentTab === "library") openTrimSheet();
+    else if (state.currentTab === "build") openPickerForBuild();
+    else if (state.currentTab === "workouts") { switchTab("build"); resetBuilder(); }
+    else openTrimSheet();
+  } catch (err) {
+    debugLog("FAB error: " + err.message);
+  }
+}
+$("#fab").addEventListener("click", handleFabTap);
+
+function openTrimSheet() {
+  debugLog("openTrimSheet called");
+  state.trimEditingId = null;
+  state.trimFile = null;
+  $("#trim-step-upload").style.display = "block";
+  $("#trim-step-edit").style.display = "none";
+  $("#clip-name").value = "";
+  $("#clip-credit").value = "";
+  $$("#clip-muscle-pills .tag-pill").forEach(p => p.classList.remove("active"));
+  state.trimMuscle = null;
+  openSheet("trim");
+}
+
+function handleVideoFile(file) {
+  if (!file) return;
+  debugLog("File picked: " + file.name + " (" + (file.size/1024/1024).toFixed(1) + "MB)");
+  state.trimFile = file;
+  $("#trim-step-upload").style.display = "none";
+  $("#trim-step-edit").style.display = "block";
+  initTrimEditor(file);
+}
+$("#video-input").addEventListener("change", (e) => handleVideoFile(e.target.files[0]));
+$("#video-input-camera").addEventListener("change", (e) => handleVideoFile(e.target.files[0]));
+
+function initTrimEditor(fileOrBlob, existingClip = null) {
+  const url = URL.createObjectURL(fileOrBlob);
+  const v = $("#trim-video");
+  v.src = url;
+  v.load();
+
+  v.addEventListener("loadedmetadata", () => {
+    state.trimDuration = v.duration || 10;
+    const startSlider = $("#trim-start");
+    const endSlider = $("#trim-end");
+    startSlider.max = state.trimDuration;
+    endSlider.max = state.trimDuration;
+
+    if (existingClip) {
+      state.trimStart = existingClip.start;
+      state.trimEnd = Math.min(existingClip.end, state.trimDuration);
+      $("#clip-name").value = existingClip.name;
+      $("#clip-credit").value = existingClip.credit || "";
+      state.trimMuscle = existingClip.muscle;
+      $$("#clip-muscle-pills .tag-pill").forEach(p => {
+        p.classList.toggle("active", p.dataset.muscle === existingClip.muscle);
+      });
+      // Editing existing clip — hide "save & add another"
+      $("#save-and-next-btn").style.display = "none";
+      $("#save-clip-btn").textContent = "Save changes";
+    } else {
+      state.trimStart = 0;
+      state.trimEnd = Math.min(5, state.trimDuration);
+      // New clip — show "save & add another" so multiple exercises from one video are easy
+      $("#save-and-next-btn").style.display = "flex";
+      $("#save-clip-btn").textContent = "Save clip";
+    }
+    startSlider.value = state.trimStart;
+    endSlider.value = state.trimEnd;
+    updateTrimUI();
+    v.currentTime = state.trimStart;
+    v.play().catch(() => {});
+  }, { once: true });
+
+  v.addEventListener("timeupdate", () => {
+    if (v.currentTime >= state.trimEnd || v.currentTime < state.trimStart - 0.1) {
+      v.currentTime = state.trimStart;
+    }
+  });
+}
+
+function updateTrimUI() {
+  const dur = state.trimDuration || 1;
+  $("#trim-start-label").textContent = state.trimStart.toFixed(1) + "s";
+  $("#trim-end-label").textContent = state.trimEnd.toFixed(1) + "s";
+  $("#trim-duration-label").textContent = (state.trimEnd - state.trimStart).toFixed(1) + "s";
+  const startPct = (state.trimStart / dur) * 100;
+  const endPct = (state.trimEnd / dur) * 100;
+  $("#trim-track-active").style.left = startPct + "%";
+  $("#trim-track-active").style.width = (endPct - startPct) + "%";
+}
+
+$("#trim-start").addEventListener("input", (e) => {
+  state.trimStart = parseFloat(e.target.value);
+  if (state.trimStart >= state.trimEnd - 0.3) {
+    state.trimStart = state.trimEnd - 0.3;
+    e.target.value = state.trimStart;
+  }
+  if (state.trimStart < 0) state.trimStart = 0;
+  $("#trim-video").currentTime = state.trimStart;
+  updateTrimUI();
+});
+$("#trim-end").addEventListener("input", (e) => {
+  state.trimEnd = parseFloat(e.target.value);
+  if (state.trimEnd <= state.trimStart + 0.3) {
+    state.trimEnd = state.trimStart + 0.3;
+    e.target.value = state.trimEnd;
+  }
+  if (state.trimEnd > state.trimDuration) state.trimEnd = state.trimDuration;
+  updateTrimUI();
+});
+
+$("#preview-loop-btn").addEventListener("click", () => {
+  const v = $("#trim-video");
+  v.currentTime = state.trimStart;
+  v.play();
+});
+
+$$("#clip-muscle-pills .tag-pill").forEach(p => {
+  p.addEventListener("click", () => {
+    $$("#clip-muscle-pills .tag-pill").forEach(x => x.classList.remove("active"));
+    p.classList.add("active");
+    state.trimMuscle = p.dataset.muscle;
+  });
+});
+
+// Generate a thumbnail (JPEG data URL) from current trim start frame
+async function generateThumbnail(videoEl, atTime) {
+  return new Promise((resolve) => {
+    try {
+      const v = videoEl;
+      const w = Math.min(400, v.videoWidth || 400);
+      const h = w * ((v.videoHeight || 500) / (v.videoWidth || 400));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+
+      const seekAndCapture = () => {
+        try {
+          ctx.drawImage(v, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          resolve(dataUrl);
+        } catch (e) {
+          debugLog("Thumb capture failed: " + e.message);
+          resolve(null);
+        }
+      };
+
+      // If already near the target time, capture immediately
+      if (Math.abs(v.currentTime - atTime) < 0.2) {
+        seekAndCapture();
+      } else {
+        const onSeeked = () => {
+          v.removeEventListener("seeked", onSeeked);
+          // Small delay for safari to render the frame
+          setTimeout(seekAndCapture, 50);
+        };
+        v.addEventListener("seeked", onSeeked);
+        v.currentTime = atTime;
+        // Fallback if seek doesn't fire
+        setTimeout(() => {
+          v.removeEventListener("seeked", onSeeked);
+          seekAndCapture();
+        }, 800);
+      }
+    } catch (e) {
+      debugLog("Thumb error: " + e.message);
+      resolve(null);
+    }
+  });
+}
+
+async function saveCurrentClip(continueAdding) {
+  const name = $("#clip-name").value.trim();
+  if (!name) { alert("Give this clip a name."); return false; }
+  if (!state.trimMuscle) { alert("Pick a muscle group."); return false; }
+
+  const v = $("#trim-video");
+  const thumb = await generateThumbnail(v, state.trimStart + 0.1);
+
+  if (state.trimEditingId) {
+    const clip = state.clips.find(c => c.id === state.trimEditingId);
+    if (clip) {
+      clip.name = name;
+      clip.muscle = state.trimMuscle;
+      clip.credit = $("#clip-credit").value.trim();
+      clip.start = state.trimStart;
+      clip.end = state.trimEnd;
+      if (thumb) {
+        clip.thumb = thumb;
+        // Update thumb in IDB
+        const rec = await dbGet(STORE_CLIPS, clip.id);
+        if (rec) await dbPut(STORE_CLIPS, { ...rec, thumb });
+      }
+      persistClipsMeta();
+    }
+  } else {
+    const clip = {
+      id: uid(),
+      name,
+      muscle: state.trimMuscle,
+      credit: $("#clip-credit").value.trim(),
+      start: state.trimStart,
+      end: state.trimEnd,
+      thumb: thumb || null,
+      createdAt: Date.now(),
+    };
+    state.clips.unshift(clip);
+    await dbPut(STORE_CLIPS, { id: clip.id, blob: state.trimFile, thumb });
+    persistClipsMeta();
+  }
+
+  // Restore looping playback on the trim video
+  v.currentTime = state.trimStart;
+  v.play().catch(() => {});
+
+  if (continueAdding) {
+    const prevDur = state.trimEnd - state.trimStart;
+    const newStart = Math.min(state.trimEnd, state.trimDuration - 0.3);
+    const newEnd = Math.min(newStart + prevDur, state.trimDuration);
+    state.trimStart = newStart;
+    state.trimEnd = newEnd;
+    $("#trim-start").value = newStart;
+    $("#trim-end").value = newEnd;
+    updateTrimUI();
+    v.currentTime = newStart;
+
+    const previousCredit = $("#clip-credit").value;
+    $("#clip-name").value = "";
+    $("#clip-credit").value = previousCredit;
+    state.trimEditingId = null;
+    state.trimMuscle = null;
+    $$("#clip-muscle-pills .tag-pill").forEach(p => p.classList.remove("active"));
+
+    flashSavedToast();
+    renderLibrary();
+    return true;
+  } else {
+    closeSheet("trim");
+    state.trimEditingId = null;
+    state.trimFile = null;
+    renderLibrary();
+    return true;
+  }
+}
+
+function flashSavedToast() {
+  let t = document.getElementById("save-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "save-toast";
+    t.style.cssText = "position:fixed; top:100px; left:50%; transform:translateX(-50%); background:#d6ff3d; color:#000; padding:10px 18px; border-radius:999px; font-family:var(--mono); font-size:11px; letter-spacing:0.15em; text-transform:uppercase; z-index:9998; box-shadow:0 8px 24px rgba(0,0,0,0.4); opacity:0; transition:opacity 0.25s; pointer-events:none;";
+    document.body.appendChild(t);
+  }
+  t.textContent = "✓ Clip saved";
+  t.style.opacity = "1";
+  setTimeout(() => { t.style.opacity = "0"; }, 1400);
+}
+
+$("#save-clip-btn").addEventListener("click", () => saveCurrentClip(false));
+$("#save-and-next-btn").addEventListener("click", () => saveCurrentClip(true));
+
+/* ============================================================================
+   FILTERS
+   ========================================================================= */
+$$("#muscle-filter .chip").forEach(c => {
+  c.addEventListener("click", () => {
+    $$("#muscle-filter .chip").forEach(x => x.classList.remove("active"));
+    c.classList.add("active");
+    state.activeMuscle = c.dataset.muscle;
+    renderLibrary();
+  });
+});
+
+/* ============================================================================
+   WORKOUTS LIST
+   ========================================================================= */
+function renderWorkouts() {
+  const list = $("#workout-list");
+  const empty = $("#workout-empty");
+  list.innerHTML = "";
+  if (state.workouts.length === 0) { empty.style.display = "block"; return; }
+  empty.style.display = "none";
+
+  state.workouts.forEach(w => {
+    const exercises = w.items.filter(i => i.type === "exercise").length;
+    const total = w.items.reduce((s, i) => s + (i.duration || 0), 0);
+    const card = document.createElement("div");
+    card.className = "workout-card";
+    card.innerHTML = `
+      <div class="nm">${escapeHtml(w.name)}</div>
+      <div class="stats">
+        <span><strong>${exercises}</strong> moves</span>
+        <span><strong>${fmtTime(total)}</strong></span>
+      </div>
+    `;
+    card.addEventListener("click", () => openWorkoutDetail(w.id));
+    list.appendChild(card);
+  });
+}
+
+async function openWorkoutDetail(id) {
+  const w = state.workouts.find(x => x.id === id);
+  if (!w) return;
+  const body = $("#wdetail-body");
+  body.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <h2 class="section-title" style="margin-top:0;">${escapeHtml(w.name)}</h2>
+      <div class="stats" style="display: flex; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--ink-dim); letter-spacing: 0.15em; text-transform: uppercase;">
+        <span>${w.items.filter(i=>i.type==='exercise').length} moves</span>
+        <span>${fmtTime(w.items.reduce((s,i)=>s+(i.duration||0),0))}</span>
+      </div>
+    </div>
+    <div id="wdetail-list"></div>
+    <button class="btn full" id="wdetail-play" style="margin-top: 20px;">▶ Start class</button>
+    <button class="btn full secondary" id="wdetail-edit" style="margin-top: 10px;">Edit</button>
+    <button class="btn full" id="wdetail-delete" style="margin-top: 10px; background: #2a1010; color: #ff7849; border: 1px solid #5a2020;">Delete class</button>
+  `;
+
+  const listEl = $("#wdetail-list");
+  for (const item of w.items) {
+    if (item.type === "rest") {
+      const r = document.createElement("div");
+      r.className = "rest-row";
+      r.innerHTML = `<span>Rest</span><span>${item.duration}s</span>`;
+      listEl.appendChild(r);
+    } else {
+      const clip = state.clips.find(c => c.id === item.clipId);
+      if (!clip) continue;
+      const url = await getBlobUrl(clip);
+      const row = document.createElement("div");
+      row.className = "exercise-row";
+      row.innerHTML = `
+        <div class="thumb">${url ? `<video src="${url}#t=${clip.start}" muted playsinline preload="metadata"></video>` : ""}</div>
+        <div class="info">
+          <div class="nm">${escapeHtml(clip.name)}</div>
+          <div class="tm">${clip.muscle} · ${item.duration}s</div>
+        </div>
+      `;
+      listEl.appendChild(row);
+      const v = row.querySelector("video");
+      if (v) {
+        v.addEventListener("loadedmetadata", () => { v.currentTime = clip.start; v.play().catch(()=>{}); });
+        v.addEventListener("timeupdate", () => {
+          if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) v.currentTime = clip.start;
+        });
+      }
+    }
+  }
+
+  $("#wdetail-play").addEventListener("click", () => { closeSheet("wdetail"); startPlayer(w); });
+  $("#wdetail-edit").addEventListener("click", () => {
+    closeSheet("wdetail");
+    switchTab("build");
+    loadWorkoutIntoBuilder(w);
+  });
+  $("#wdetail-delete").addEventListener("click", () => {
+    if (!confirm("Delete this class?")) return;
+    state.workouts = state.workouts.filter(x => x.id !== id);
+    saveWorkouts(state.workouts);
+    closeSheet("wdetail");
+    renderWorkouts();
+  });
+
+  openSheet("wdetail");
+}
+
+/* ============================================================================
+   BUILD
+   ========================================================================= */
+function resetBuilder() {
+  state.buildExercises = [];
+  state.buildEditingId = null;
+  $("#build-name").value = "";
+  $("#build-default-time").value = "40";
+  $("#build-default-rest").value = "15";
+  renderBuildList();
+}
+
+function loadWorkoutIntoBuilder(w) {
+  state.buildEditingId = w.id;
+  state.buildExercises = JSON.parse(JSON.stringify(w.items));
+  $("#build-name").value = w.name;
+  renderBuildList();
+}
+
+async function renderBuildList() {
+  const listEl = $("#build-list");
+  listEl.innerHTML = "";
+  for (let i = 0; i < state.buildExercises.length; i++) {
+    const item = state.buildExercises[i];
+    if (item.type === "rest") {
+      const row = document.createElement("div");
+      row.className = "rest-row";
+      row.innerHTML = `
+        <div style="display:flex; align-items:center; gap: 10px;">
+          <span>Rest</span>
+          <input type="number" value="${item.duration}" min="0" max="600" data-idx="${i}" class="rest-duration-input" style="width: 60px; background: var(--bg); border: 1px solid var(--line-strong); color: var(--ink); padding: 4px 8px; border-radius: 6px; font-family: var(--mono); font-size: 12px; text-align: center;" />
+          <span>s</span>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <button class="icon-btn" data-action="up" data-idx="${i}">↑</button>
+          <button class="icon-btn" data-action="down" data-idx="${i}">↓</button>
+          <button class="icon-btn danger" data-action="del" data-idx="${i}">×</button>
+        </div>
+      `;
+      listEl.appendChild(row);
+    } else {
+      const clip = state.clips.find(c => c.id === item.clipId);
+      if (!clip) {
+        const row = document.createElement("div");
+        row.className = "exercise-row";
+        row.innerHTML = `<div class="info"><div class="nm">(deleted clip)</div></div>
+          <div class="actions"><button class="icon-btn danger" data-action="del" data-idx="${i}">×</button></div>`;
+        listEl.appendChild(row);
+        continue;
+      }
+      const url = await getBlobUrl(clip);
+      const row = document.createElement("div");
+      row.className = "exercise-row";
+      row.innerHTML = `
+        <div class="thumb">${url ? `<video src="${url}#t=${clip.start}" muted playsinline preload="metadata"></video>` : ""}</div>
+        <div class="info">
+          <div class="nm">${escapeHtml(clip.name)}</div>
+          <div class="tm">${clip.muscle}</div>
+          <div class="duration-input">
+            <input type="number" value="${item.duration}" min="3" max="600" data-idx="${i}" class="exercise-duration-input" />
+            <span>seconds</span>
+          </div>
+        </div>
+        <div class="actions" style="flex-direction: column;">
+          <button class="icon-btn" data-action="up" data-idx="${i}">↑</button>
+          <button class="icon-btn" data-action="down" data-idx="${i}">↓</button>
+          <button class="icon-btn danger" data-action="del" data-idx="${i}">×</button>
+        </div>
+      `;
+      listEl.appendChild(row);
+      const v = row.querySelector("video");
+      if (v) {
+        v.addEventListener("loadedmetadata", () => { v.currentTime = clip.start; v.play().catch(()=>{}); });
+        v.addEventListener("timeupdate", () => {
+          if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) v.currentTime = clip.start;
+        });
+      }
+    }
+  }
+
+  // Hook up controls
+  $$(".exercise-duration-input, .rest-duration-input", listEl).forEach(inp => {
+    inp.addEventListener("change", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const val = parseInt(e.target.value) || 0;
+      state.buildExercises[idx].duration = val;
+    });
+  });
+  $$("[data-action]", listEl).forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.idx);
+      const action = btn.dataset.action;
+      if (action === "del") {
+        state.buildExercises.splice(idx, 1);
+      } else if (action === "up" && idx > 0) {
+        [state.buildExercises[idx-1], state.buildExercises[idx]] = [state.buildExercises[idx], state.buildExercises[idx-1]];
+      } else if (action === "down" && idx < state.buildExercises.length - 1) {
+        [state.buildExercises[idx+1], state.buildExercises[idx]] = [state.buildExercises[idx], state.buildExercises[idx+1]];
+      }
+      renderBuildList();
+    });
+  });
+}
+
+$("#add-exercise-btn").addEventListener("click", () => {
+  if (state.clips.length === 0) { alert("Add some clips first."); return; }
+  state.pickerCallback = (clipId) => {
+    const dur = parseInt($("#build-default-time").value) || 40;
+    state.buildExercises.push({ type: "exercise", clipId, duration: dur });
+    const restDur = parseInt($("#build-default-rest").value) || 0;
+    if (restDur > 0) state.buildExercises.push({ type: "rest", duration: restDur });
+    renderBuildList();
+    closeSheet("picker");
+  };
+  openPicker();
+});
+
+$("#add-rest-btn").addEventListener("click", () => {
+  const dur = parseInt($("#build-default-rest").value) || 15;
+  state.buildExercises.push({ type: "rest", duration: dur });
+  renderBuildList();
+});
+
+$("#save-workout-btn").addEventListener("click", () => {
+  const name = $("#build-name").value.trim();
+  if (!name) { alert("Name your class."); return; }
+  if (state.buildExercises.length === 0) { alert("Add at least one exercise."); return; }
+
+  if (state.buildEditingId) {
+    const w = state.workouts.find(x => x.id === state.buildEditingId);
+    w.name = name;
+    w.items = state.buildExercises;
+  } else {
+    state.workouts.unshift({
+      id: uid(),
+      name,
+      items: state.buildExercises,
+      createdAt: Date.now(),
+    });
+  }
+  saveWorkouts(state.workouts);
+  resetBuilder();
+  switchTab("workouts");
+  renderWorkouts();
+});
+
+/* ============================================================================
+   PICKER
+   ========================================================================= */
+function openPicker() {
+  const body = $("#picker-body");
+  body.innerHTML = "";
+  if (state.clips.length === 0) {
+    body.innerHTML = `<div class="helper-text">No clips yet. Add one first.</div>`;
+  } else {
+    state.clips.forEach(async clip => {
+      const url = await getBlobUrl(clip);
+      const row = document.createElement("div");
+      row.className = "picker-clip";
+      row.innerHTML = `
+        <div class="thumb">${url ? `<video src="${url}#t=${clip.start}" muted playsinline preload="metadata"></video>` : ""}</div>
+        <div class="info">
+          <div class="nm">${escapeHtml(clip.name)}</div>
+          <div class="ms">${clip.muscle} · ${(clip.end - clip.start).toFixed(1)}s</div>
+        </div>
+      `;
+      const v = row.querySelector("video");
+      if (v) {
+        v.addEventListener("loadedmetadata", () => { v.currentTime = clip.start; v.play().catch(()=>{}); });
+        v.addEventListener("timeupdate", () => {
+          if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) v.currentTime = clip.start;
+        });
+      }
+      row.addEventListener("click", () => state.pickerCallback && state.pickerCallback(clip.id));
+      body.appendChild(row);
+    });
+  }
+  openSheet("picker");
+}
+
+function openPickerForBuild() {
+  state.pickerCallback = (clipId) => {
+    const dur = parseInt($("#build-default-time").value) || 40;
+    state.buildExercises.push({ type: "exercise", clipId, duration: dur });
+    const restDur = parseInt($("#build-default-rest").value) || 0;
+    if (restDur > 0) state.buildExercises.push({ type: "rest", duration: restDur });
+    renderBuildList();
+    closeSheet("picker");
+  };
+  openPicker();
+}
+
+/* ============================================================================
+   PLAYER
+   ========================================================================= */
+const player = {
+  workout: null,
+  idx: 0,
+  remaining: 0,
+  rafId: null,
+  lastTick: 0,
+  paused: false,
+  totalElapsed: 0,
+  totalDuration: 0,
+};
+
+async function startPlayer(workout) {
+  if (!workout || workout.items.length === 0) return;
+  player.workout = workout;
+  player.idx = 0;
+  player.paused = false;
+  player.totalElapsed = 0;
+  player.totalDuration = workout.items.reduce((s,i)=>s+(i.duration||0),0);
+
+  $("#player").classList.add("active");
+  $("#player-complete").classList.remove("active");
+  await loadPlayerStep();
+  startTimerLoop();
+
+  // Try to lock screen on if available
+  try {
+    if ('wakeLock' in navigator) {
+      player.wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) {}
+}
+
+async function loadPlayerStep() {
+  const item = player.workout.items[player.idx];
+  if (!item) { completePlayer(); return; }
+
+  player.remaining = item.duration;
+  updatePlayerUI();
+
+  const restOverlay = $("#player-rest");
+  const v = $("#player-video");
+
+  if (item.type === "rest") {
+    restOverlay.classList.add("active");
+    v.pause();
+    v.removeAttribute("src");
+    $("#player-name").textContent = "Rest";
+    $("#player-muscle").textContent = "Catch your breath";
+    $("#player-timer").classList.add("rest");
+  } else {
+    restOverlay.classList.remove("active");
+    const clip = state.clips.find(c => c.id === item.clipId);
+    if (!clip) { nextStep(); return; }
+    const url = await getBlobUrl(clip);
+    v.src = url;
+    v.load();
+    v.addEventListener("loadedmetadata", () => {
+      v.currentTime = clip.start;
+      v.play().catch(()=>{});
+    }, { once: true });
+    v.ontimeupdate = () => {
+      if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) {
+        v.currentTime = clip.start;
+      }
+    };
+    $("#player-name").textContent = clip.name;
+    $("#player-muscle").textContent = clip.muscle;
+    $("#player-timer").classList.remove("rest");
+  }
+}
+
+function updatePlayerUI() {
+  const r = Math.max(0, Math.ceil(player.remaining));
+  $("#player-timer").textContent = pad(r);
+  $("#player-timer").classList.toggle("urgent", r <= 3 && r > 0);
+  $("#player-progress-label").textContent = `${player.idx + 1} / ${player.workout.items.length}`;
+
+  // Compute total elapsed so far
+  let elapsed = 0;
+  for (let i = 0; i < player.idx; i++) elapsed += player.workout.items[i].duration;
+  elapsed += (player.workout.items[player.idx]?.duration || 0) - player.remaining;
+  const pct = (elapsed / player.totalDuration) * 100;
+  $("#player-progress-fill").style.width = Math.min(100, Math.max(0, pct)) + "%";
+}
+
+function startTimerLoop() {
+  player.lastTick = performance.now();
+  function tick(now) {
+    if (!player.workout) return;
+    const dt = (now - player.lastTick) / 1000;
+    player.lastTick = now;
+    if (!player.paused) {
+      player.remaining -= dt;
+      if (player.remaining <= 0) {
+        nextStep();
+        return;
+      }
+      updatePlayerUI();
+    }
+    player.rafId = requestAnimationFrame(tick);
+  }
+  player.rafId = requestAnimationFrame(tick);
+}
+
+function nextStep() {
+  if (player.idx >= player.workout.items.length - 1) { completePlayer(); return; }
+  // Beep cue (simple Web Audio click)
+  try { beep(); } catch(e) {}
+  player.idx++;
+  loadPlayerStep();
+}
+
+function prevStep() {
+  if (player.idx <= 0) {
+    player.remaining = player.workout.items[0].duration;
+    updatePlayerUI();
+    return;
+  }
+  player.idx--;
+  loadPlayerStep();
+}
+
+function completePlayer() {
+  $("#player-complete").classList.add("active");
+  player.workout = null;
+  if (player.rafId) cancelAnimationFrame(player.rafId);
+  if (player.wakeLock) { try { player.wakeLock.release(); } catch(e) {} }
+}
+
+function closePlayer() {
+  $("#player").classList.remove("active");
+  $("#player-complete").classList.remove("active");
+  if (player.rafId) cancelAnimationFrame(player.rafId);
+  player.workout = null;
+  const v = $("#player-video");
+  v.pause();
+  v.removeAttribute("src");
+  if (player.wakeLock) { try { player.wakeLock.release(); } catch(e) {} }
+}
+
+$("#player-close").addEventListener("click", closePlayer);
+$("#player-complete-close").addEventListener("click", closePlayer);
+$("#player-next").addEventListener("click", nextStep);
+$("#player-prev").addEventListener("click", prevStep);
+$("#player-playpause").addEventListener("click", () => {
+  player.paused = !player.paused;
+  $("#player-playpause").textContent = player.paused ? "▶" : "❚❚";
+  const v = $("#player-video");
+  if (player.paused) v.pause(); else v.play().catch(()=>{});
+});
+
+// Web Audio beep
+let audioCtx = null;
+function beep() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.frequency.value = 880;
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.2);
+  o.start();
+  o.stop(audioCtx.currentTime + 0.22);
+}
+
+/* ============================================================================
+   SHEETS
+   ========================================================================= */
+function openSheet(name) {
+  $(`#${name}-overlay`).classList.add("active");
+  $(`#${name}-sheet`).classList.add("active");
+}
+function closeSheet(name) {
+  $(`#${name}-overlay`).classList.remove("active");
+  $(`#${name}-sheet`).classList.remove("active");
+}
+$$("[data-close]").forEach(b => b.addEventListener("click", () => closeSheet(b.dataset.close)));
+["trim","detail","picker","wdetail"].forEach(n => {
+  const ov = $(`#${n}-overlay`);
+  if (ov) ov.addEventListener("click", () => closeSheet(n));
+});
+
+/* ============================================================================
+   TABS
+   ========================================================================= */
+function switchTab(name) {
+  state.currentTab = name;
+  $$("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  $$(".view").forEach(v => v.classList.remove("active"));
+  $(`#view-${name}`).classList.add("active");
+  $("#fab").style.display = (name === "profile") ? "none" : "flex";
+  if (name === "library") renderLibrary();
+  if (name === "workouts") renderWorkouts();
+  if (name === "build") renderBuildList();
+  if (name === "profile") updateStorageInfo();
+}
+$$("nav.tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+/* ============================================================================
+   PROFILE
+   ========================================================================= */
+async function updateStorageInfo() {
+  try {
+    const est = await navigator.storage.estimate();
+    const used = (est.usage / 1024 / 1024).toFixed(1);
+    const quota = (est.quota / 1024 / 1024).toFixed(0);
+    $("#storage-info").textContent = `Using ${used} MB of ~${quota} MB available. ${state.clips.length} clips · ${state.workouts.length} classes.`;
+  } catch {
+    $("#storage-info").textContent = `${state.clips.length} clips · ${state.workouts.length} classes saved on this device.`;
+  }
+}
+
+$("#export-btn").addEventListener("click", async () => {
+  // Export metadata only (video blobs are too big for casual export)
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    clips: state.clips,
+    workouts: state.workouts,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `loop-backup-${Date.now()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  alert("Exported metadata. Note: video files stay on this device only.");
+});
+
+$("#import-btn").addEventListener("click", () => $("#import-file").click());
+$("#import-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (data.clips) {
+      // Merge in
+      const existingIds = new Set(state.clips.map(c => c.id));
+      data.clips.forEach(c => { if (!existingIds.has(c.id)) state.clips.push(c); });
+      persistClipsMeta();
+    }
+    if (data.workouts) {
+      const existingIds = new Set(state.workouts.map(w => w.id));
+      data.workouts.forEach(w => { if (!existingIds.has(w.id)) state.workouts.push(w); });
+      saveWorkouts(state.workouts);
+    }
+    alert("Imported. Note: video files need to be re-uploaded.");
+    renderLibrary();
+    renderWorkouts();
+  } catch (err) {
+    alert("Couldn't read file: " + err.message);
+  }
+});
+
+$("#reset-btn").addEventListener("click", async () => {
+  if (!confirm("Delete every clip and class? This cannot be undone.")) return;
+  if (!confirm("Are you really sure?")) return;
+  await dbClear(STORE_CLIPS);
+  localStorage.removeItem(LS_CLIPS);
+  localStorage.removeItem(LS_WORKOUTS);
+  state.clips = []; state.workouts = []; state.blobUrls = {};
+  renderLibrary(); renderWorkouts(); updateStorageInfo();
+});
+
+/* ============================================================================
+   DEBUG STRIP - so we can see what's happening on a phone
+   ========================================================================= */
+const debugEl = document.createElement("div");
+debugEl.id = "debug-strip";
+debugEl.style.cssText = "position:fixed; bottom:80px; left:8px; right:8px; max-height:120px; overflow-y:auto; background:rgba(0,0,0,0.95); color:#d6ff3d; font-family:ui-monospace,monospace; font-size:10px; padding:6px 8px; border-radius:6px; z-index:9999; border:1px solid #d6ff3d; line-height:1.3; display:none;";
+document.body.appendChild(debugEl);
+
+const debugToggle = document.createElement("button");
+debugToggle.textContent = "🐛";
+debugToggle.style.cssText = "position:fixed; bottom:80px; left:8px; width:32px; height:32px; background:#d6ff3d; color:#000; border:none; border-radius:50%; z-index:10000; font-size:14px; cursor:pointer;";
+debugToggle.addEventListener("click", () => {
+  debugEl.style.display = debugEl.style.display === "none" ? "block" : "none";
+});
+document.body.appendChild(debugToggle);
+
+function debugLog(msg) {
+  const line = document.createElement("div");
+  line.textContent = new Date().toISOString().slice(11,19) + " " + msg;
+  debugEl.appendChild(line);
+  debugEl.scrollTop = debugEl.scrollHeight;
+  if (debugEl.children.length > 30) debugEl.removeChild(debugEl.firstChild);
+}
+
+window.addEventListener("error", (e) => {
+  debugLog("ERR: " + (e.message || "unknown") + " @ " + (e.filename || "?") + ":" + (e.lineno || "?"));
+  debugEl.style.display = "block";
+});
+window.addEventListener("unhandledrejection", (e) => {
+  debugLog("PROMISE-ERR: " + (e.reason && e.reason.message || e.reason || "unknown"));
+  debugEl.style.display = "block";
+});
+debugLog("App started. UA: " + navigator.userAgent.slice(0, 60));
+
+/* ============================================================================
+   INIT
+   ========================================================================= */
+async function init() {
+  try {
+    debugLog("Init starting...");
+    state.clips = loadClipsMeta();
+    state.workouts = getWorkouts();
+    debugLog("Loaded " + state.clips.length + " clips, " + state.workouts.length + " workouts");
+    state.clips.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    // Load thumbnails from IndexedDB
+    for (const clip of state.clips) {
+      try {
+        const rec = await dbGet(STORE_CLIPS, clip.id);
+        if (rec && rec.thumb) clip.thumb = rec.thumb;
+      } catch (e) {}
+    }
+
+    await renderLibrary();
+    renderWorkouts();
+    debugLog("Init complete.");
+
+    // Background: backfill missing thumbnails for older clips
+    setTimeout(() => backfillThumbnails(), 1500);
+  } catch (err) {
+    debugLog("INIT ERR: " + err.message);
+  }
+}
+
+async function backfillThumbnails() {
+  const needs = state.clips.filter(c => !c.thumb);
+  if (needs.length === 0) return;
+  debugLog("Generating " + needs.length + " thumbnail(s)...");
+
+  // Reuse a single hidden video element for efficiency
+  const hidden = document.createElement("video");
+  hidden.muted = true;
+  hidden.playsInline = true;
+  hidden.preload = "auto";
+  hidden.style.cssText = "position:fixed; opacity:0; pointer-events:none; width:1px; height:1px; left:-10px; top:-10px;";
+  document.body.appendChild(hidden);
+
+  for (const clip of needs) {
+    try {
+      const rec = await dbGet(STORE_CLIPS, clip.id);
+      if (!rec || !rec.blob) continue;
+      const url = URL.createObjectURL(rec.blob);
+      hidden.src = url;
+
+      await new Promise((res) => {
+        const onMeta = () => { hidden.removeEventListener("loadedmetadata", onMeta); res(); };
+        hidden.addEventListener("loadedmetadata", onMeta);
+        setTimeout(res, 3000);
+      });
+
+      const thumb = await generateThumbnail(hidden, clip.start + 0.1);
+      URL.revokeObjectURL(url);
+
+      if (thumb) {
+        clip.thumb = thumb;
+        await dbPut(STORE_CLIPS, { ...rec, thumb });
+      }
+    } catch (e) {
+      debugLog("Backfill failed for " + clip.id + ": " + e.message);
+    }
+  }
+  hidden.remove();
+  await renderLibrary();
+  debugLog("Backfill done.");
+}
+init();
+
+// Prevent iOS bounce only on the body itself (not on interactive elements)
+document.body.addEventListener("touchmove", (e) => {
+  // Only block touchmove when scrolling the body itself, not when scrolling
+  // inside main, sheets, or filter rows — and never on buttons/inputs
+  if (e.target === document.body || e.target === document.documentElement) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+</script>
+</body>
+</html>
