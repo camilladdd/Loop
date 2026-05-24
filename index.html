@@ -784,6 +784,152 @@
     border-color: var(--accent);
   }
 
+  /* Spring pills (colored) */
+  .spring-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .spring-pill .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .spring-pill[data-spring="yellow"] .dot { background: #f5d33d; }
+  .spring-pill[data-spring="blue"] .dot { background: #4ca8ff; }
+  .spring-pill[data-spring="red1"] .dot,
+  .spring-pill[data-spring="red2"] .dot,
+  .spring-pill[data-spring="red3"] .dot { background: #ff4949; }
+  .spring-pill.active {
+    background: var(--bg-elev-2);
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+  .spring-pill .count {
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 9px;
+    margin-left: 2px;
+  }
+
+  /* Equipment grid */
+  .equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .equipment-pill {
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-family: var(--sans);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .equipment-pill .icon { font-size: 16px; }
+  .equipment-pill.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Setup indicator in build list */
+  .equipment-badges {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .eq-badge {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .eq-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  /* Player setup overlay */
+  .player-setup-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(214, 255, 61, 0.15), rgba(0,0,0,0.92));
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .player-setup-overlay.active { display: flex; }
+  .player-setup-overlay .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .player-setup-overlay .what {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 42px;
+    line-height: 1.05;
+    color: #fff;
+    margin-bottom: 28px;
+    letter-spacing: -0.025em;
+  }
+  .player-setup-overlay .next-name {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .player-setup-overlay .setup-timer {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 72px;
+    color: #fff;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin-top: 12px;
+  }
+  .player-setup-overlay .skip-btn {
+    margin-top: 24px;
+  }
+
   /* Picker for clips when building workout */
   .picker-clip {
     background: var(--bg-elev);
@@ -1083,12 +1229,30 @@
   <div class="sheet-body" id="wdetail-body"></div>
 </div>
 
+<!-- Exercise settings sheet (springs / equipment / duration / setup time) -->
+<div class="sheet-overlay" id="exset-overlay"></div>
+<div class="sheet" id="exset-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h3 id="exset-title">Exercise setup</h3>
+    <button class="sheet-close" data-close="exset">×</button>
+  </div>
+  <div class="sheet-body" id="exset-body"></div>
+</div>
+
 <!-- Player overlay -->
 <div class="player-overlay" id="player">
   <div class="player-video-wrap">
     <video id="player-video" playsinline muted loop autoplay></video>
     <div class="player-rest-overlay" id="player-rest">
       <div class="player-rest-label">rest</div>
+    </div>
+    <div class="player-setup-overlay" id="player-setup">
+      <div class="label">Set up</div>
+      <div class="what" id="player-setup-what">Yellow spring · Hand straps</div>
+      <div class="next-name" id="player-setup-next">Next: Bulgarian split squat</div>
+      <div class="setup-timer" id="player-setup-timer">15</div>
+      <button class="btn skip-btn" id="player-setup-skip">I'm ready ▶</button>
     </div>
   </div>
   <div class="player-overlay-content">
@@ -1195,6 +1359,75 @@ function getWorkouts() {
   try { return JSON.parse(localStorage.getItem(LS_WORKOUTS)) || []; } catch { return []; }
 }
 function saveWorkouts(arr) { localStorage.setItem(LS_WORKOUTS, JSON.stringify(arr)); }
+
+/* ============================================================================
+   PILATES CONSTANTS — springs and equipment
+   ========================================================================= */
+const SPRINGS = [
+  { id: "yellow", label: "Yellow", level: "Light" },
+  { id: "blue",   label: "Blue",   level: "Medium" },
+  { id: "red1",   label: "Red ×1", level: "Heavy" },
+  { id: "red2",   label: "Red ×2", level: "Very heavy" },
+  { id: "red3",   label: "Red ×3", level: "Max" },
+];
+
+// Setup times in seconds for each piece of equipment / spring change
+const EQUIPMENT = [
+  { id: "hand_straps",  label: "Hand straps",  icon: "✋", setup: 10 },
+  { id: "feet_straps",  label: "Feet straps",  icon: "🦶", setup: 10 },
+  { id: "ball",         label: "Ball",         icon: "🏀", setup: 10 },
+  { id: "foot_bar",     label: "Foot bar",     icon: "═",  setup: 15 },
+  { id: "box_long",     label: "Box (long)",   icon: "📦", setup: 15 },
+  { id: "box_short",    label: "Box (short)",  icon: "📦", setup: 15 },
+  { id: "weights",      label: "Weights",      icon: "🏋️", setup: 15 },
+  { id: "jump_board",   label: "Jump board",   icon: "🪜", setup: 25 },
+];
+const SPRING_CHANGE_SETUP = 10; // seconds when only the spring changes
+
+function equipmentById(id) { return EQUIPMENT.find(e => e.id === id); }
+function springById(id) { return SPRINGS.find(s => s.id === id); }
+
+// Compare prev and next exercises' setup, return total setup seconds and a human description
+function calcSetup(prev, next) {
+  const prevSprings = (prev && prev.springs) || [];
+  const nextSprings = (next && next.springs) || [];
+  const prevEq = (prev && prev.equipment) || [];
+  const nextEq = (next && next.equipment) || [];
+
+  // Detect spring change
+  const springsChanged = prevSprings.sort().join(",") !== nextSprings.sort().join(",");
+  // Equipment that wasn't there before but is needed now
+  const equipmentAdded = nextEq.filter(id => !prevEq.includes(id));
+
+  let total = 0;
+  const parts = [];
+
+  if (equipmentAdded.length > 0) {
+    for (const eqId of equipmentAdded) {
+      const eq = equipmentById(eqId);
+      if (eq) { total += eq.setup; parts.push(eq.label); }
+    }
+    // Springs changing while equipment is also changing: bundled, no extra time
+    if (springsChanged && nextSprings.length > 0) {
+      parts.unshift(nextSprings.map(s => springById(s)?.label).filter(Boolean).join(" + ") + " spring");
+    }
+  } else if (springsChanged) {
+    // Only the spring changed
+    total = SPRING_CHANGE_SETUP;
+    if (nextSprings.length > 0) {
+      parts.push(nextSprings.map(s => springById(s)?.label).filter(Boolean).join(" + ") + " spring");
+    } else {
+      parts.push("no spring");
+    }
+  }
+
+  // Allow per-exercise override of setup time
+  if (next && typeof next.setupOverride === "number" && next.setupOverride >= 0) {
+    total = next.setupOverride;
+  }
+
+  return { seconds: total, description: parts.join(" · "), changed: total > 0 };
+}
 
 /* ============================================================================
    STATE
@@ -1739,24 +1972,35 @@ async function openWorkoutDetail(id) {
     } else {
       const clip = state.clips.find(c => c.id === item.clipId);
       if (!clip) continue;
-      const url = await getBlobUrl(clip);
       const row = document.createElement("div");
       row.className = "exercise-row";
+
+      const thumbHtml = clip.thumb
+        ? `<img src="${clip.thumb}" alt="" style="width:100%; height:100%; object-fit:cover;" />`
+        : `<div style="width:100%;height:100%;background:#000;"></div>`;
+
+      const badges = [];
+      (item.springs || []).forEach(sId => {
+        const s = springById(sId);
+        if (!s) return;
+        const colorMap = { yellow: "#f5d33d", blue: "#4ca8ff", red1: "#ff4949", red2: "#ff4949", red3: "#ff4949" };
+        badges.push(`<span class="eq-badge"><span class="dot" style="background:${colorMap[sId]}"></span>${s.label}</span>`);
+      });
+      (item.equipment || []).forEach(eId => {
+        const e = equipmentById(eId);
+        if (!e) return;
+        badges.push(`<span class="eq-badge">${e.label}</span>`);
+      });
+
       row.innerHTML = `
-        <div class="thumb">${url ? `<video src="${url}#t=${clip.start}" muted playsinline preload="metadata"></video>` : ""}</div>
+        <div class="thumb">${thumbHtml}</div>
         <div class="info">
           <div class="nm">${escapeHtml(clip.name)}</div>
           <div class="tm">${clip.muscle} · ${item.duration}s</div>
+          ${badges.length ? `<div class="equipment-badges">${badges.join("")}</div>` : ""}
         </div>
       `;
       listEl.appendChild(row);
-      const v = row.querySelector("video");
-      if (v) {
-        v.addEventListener("loadedmetadata", () => { v.currentTime = clip.start; v.play().catch(()=>{}); });
-        v.addEventListener("timeupdate", () => {
-          if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) v.currentTime = clip.start;
-        });
-      }
     }
   }
 
@@ -1827,18 +2071,32 @@ async function renderBuildList() {
         listEl.appendChild(row);
         continue;
       }
-      const url = await getBlobUrl(clip);
       const row = document.createElement("div");
       row.className = "exercise-row";
+      const thumbHtml = clip.thumb
+        ? `<img src="${clip.thumb}" alt="" style="width:100%; height:100%; object-fit:cover;" />`
+        : `<div style="width:100%;height:100%;background:#000;"></div>`;
+
+      // Equipment / spring badges
+      const badges = [];
+      (item.springs || []).forEach(sId => {
+        const s = springById(sId);
+        if (!s) return;
+        const colorMap = { yellow: "#f5d33d", blue: "#4ca8ff", red1: "#ff4949", red2: "#ff4949", red3: "#ff4949" };
+        badges.push(`<span class="eq-badge"><span class="dot" style="background:${colorMap[sId]}"></span>${s.label}</span>`);
+      });
+      (item.equipment || []).forEach(eId => {
+        const e = equipmentById(eId);
+        if (!e) return;
+        badges.push(`<span class="eq-badge">${e.label}</span>`);
+      });
+
       row.innerHTML = `
-        <div class="thumb">${url ? `<video src="${url}#t=${clip.start}" muted playsinline preload="metadata"></video>` : ""}</div>
+        <div class="thumb">${thumbHtml}</div>
         <div class="info">
           <div class="nm">${escapeHtml(clip.name)}</div>
-          <div class="tm">${clip.muscle}</div>
-          <div class="duration-input">
-            <input type="number" value="${item.duration}" min="3" max="600" data-idx="${i}" class="exercise-duration-input" />
-            <span>seconds</span>
-          </div>
+          <div class="tm">${clip.muscle} · ${item.duration}s</div>
+          ${badges.length ? `<div class="equipment-badges">${badges.join("")}</div>` : `<div class="equipment-badges"><span class="eq-badge" style="color:var(--ink-faint); font-style:italic;">Tap to set up</span></div>`}
         </div>
         <div class="actions" style="flex-direction: column;">
           <button class="icon-btn" data-action="up" data-idx="${i}">↑</button>
@@ -1846,27 +2104,26 @@ async function renderBuildList() {
           <button class="icon-btn danger" data-action="del" data-idx="${i}">×</button>
         </div>
       `;
+      row.style.cursor = "pointer";
+      // Tapping the info area opens the settings sheet (not the action buttons)
+      row.querySelector(".info").addEventListener("click", () => openExerciseSettings(i));
+      row.querySelector(".thumb").addEventListener("click", () => openExerciseSettings(i));
       listEl.appendChild(row);
-      const v = row.querySelector("video");
-      if (v) {
-        v.addEventListener("loadedmetadata", () => { v.currentTime = clip.start; v.play().catch(()=>{}); });
-        v.addEventListener("timeupdate", () => {
-          if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) v.currentTime = clip.start;
-        });
-      }
     }
   }
 
-  // Hook up controls
-  $$(".exercise-duration-input, .rest-duration-input", listEl).forEach(inp => {
+  // Hook up rest duration inputs and action buttons
+  $$(".rest-duration-input", listEl).forEach(inp => {
     inp.addEventListener("change", (e) => {
       const idx = parseInt(e.target.dataset.idx);
       const val = parseInt(e.target.value) || 0;
       state.buildExercises[idx].duration = val;
     });
+    inp.addEventListener("click", e => e.stopPropagation());
   });
   $$("[data-action]", listEl).forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
       const idx = parseInt(btn.dataset.idx);
       const action = btn.dataset.action;
       if (action === "del") {
@@ -1881,11 +2138,118 @@ async function renderBuildList() {
   });
 }
 
+/* ============================================================================
+   EXERCISE SETTINGS SHEET
+   ========================================================================= */
+function openExerciseSettings(idx) {
+  const item = state.buildExercises[idx];
+  if (!item || item.type !== "exercise") return;
+  const clip = state.clips.find(c => c.id === item.clipId);
+  if (!clip) return;
+
+  // Initialize fields if missing
+  if (!item.springs) item.springs = [];
+  if (!item.equipment) item.equipment = [];
+
+  $("#exset-title").textContent = clip.name;
+
+  const body = $("#exset-body");
+  body.innerHTML = `
+    <div class="field">
+      <label>Duration (seconds)</label>
+      <input type="number" id="exset-duration" value="${item.duration}" min="3" max="600" />
+    </div>
+
+    <div class="field">
+      <label>Springs</label>
+      <div class="helper-text" style="margin-bottom: 8px;">Tap to toggle. Multiple reds allowed.</div>
+      <div class="tag-pills" id="exset-springs">
+        ${SPRINGS.map(s => {
+          const active = item.springs.includes(s.id) ? "active" : "";
+          return `<button class="spring-pill ${active}" data-spring="${s.id}"><span class="dot"></span>${s.label}</button>`;
+        }).join("")}
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Equipment</label>
+      <div class="equipment-grid" id="exset-equipment">
+        ${EQUIPMENT.map(e => {
+          const active = item.equipment.includes(e.id) ? "active" : "";
+          return `<button class="equipment-pill ${active}" data-equipment="${e.id}"><span class="icon">${e.icon}</span>${e.label}</button>`;
+        }).join("")}
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Setup time before this exercise</label>
+      <div class="helper-text" style="margin-bottom: 8px;" id="exset-setup-auto"></div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="number" id="exset-setup-override" placeholder="auto" min="0" max="120" value="${item.setupOverride ?? ''}" style="flex: 1;" />
+        <span style="font-family:var(--mono); font-size:11px; color:var(--ink-dim); letter-spacing:0.1em; text-transform:uppercase;">seconds</span>
+      </div>
+      <div class="helper-text" style="margin-top: 6px; font-size: 11px;">Leave blank for auto. Override only if you need more or less.</div>
+    </div>
+
+    <button class="btn full" id="exset-save">Save</button>
+  `;
+
+  // Update auto setup hint based on what was selected
+  function updateAutoSetupHint() {
+    const prev = state.buildExercises.slice(0, idx).reverse().find(x => x.type === "exercise");
+    const tempNext = { springs: collectSprings(), equipment: collectEquipment() };
+    const calc = calcSetup(prev, tempNext);
+    const el = $("#exset-setup-auto");
+    if (calc.seconds > 0) {
+      el.textContent = `Auto: ${calc.seconds}s — ${calc.description}`;
+    } else {
+      el.textContent = "Auto: no setup time needed (same as previous, or first exercise)";
+    }
+  }
+  function collectSprings() {
+    return $$("#exset-springs .spring-pill.active").map(b => b.dataset.spring);
+  }
+  function collectEquipment() {
+    return $$("#exset-equipment .equipment-pill.active").map(b => b.dataset.equipment);
+  }
+
+  $$("#exset-springs .spring-pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("active");
+      updateAutoSetupHint();
+    });
+  });
+  $$("#exset-equipment .equipment-pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("active");
+      updateAutoSetupHint();
+    });
+  });
+
+  updateAutoSetupHint();
+
+  $("#exset-save").addEventListener("click", () => {
+    item.duration = parseInt($("#exset-duration").value) || item.duration;
+    item.springs = collectSprings();
+    item.equipment = collectEquipment();
+    const override = $("#exset-setup-override").value.trim();
+    if (override === "") {
+      delete item.setupOverride;
+    } else {
+      item.setupOverride = Math.max(0, parseInt(override) || 0);
+    }
+    closeSheet("exset");
+    renderBuildList();
+  });
+
+  openSheet("exset");
+}
+
 $("#add-exercise-btn").addEventListener("click", () => {
   if (state.clips.length === 0) { alert("Add some clips first."); return; }
   state.pickerCallback = (clipId) => {
     const dur = parseInt($("#build-default-time").value) || 40;
-    state.buildExercises.push({ type: "exercise", clipId, duration: dur });
+    state.buildExercises.push({ type: "exercise", clipId, duration: dur, springs: [], equipment: [] });
     const restDur = parseInt($("#build-default-rest").value) || 0;
     if (restDur > 0) state.buildExercises.push({ type: "rest", duration: restDur });
     renderBuildList();
@@ -1960,7 +2324,7 @@ function openPicker() {
 function openPickerForBuild() {
   state.pickerCallback = (clipId) => {
     const dur = parseInt($("#build-default-time").value) || 40;
-    state.buildExercises.push({ type: "exercise", clipId, duration: dur });
+    state.buildExercises.push({ type: "exercise", clipId, duration: dur, springs: [], equipment: [] });
     const restDur = parseInt($("#build-default-rest").value) || 0;
     if (restDur > 0) state.buildExercises.push({ type: "rest", duration: restDur });
     renderBuildList();
@@ -1979,24 +2343,58 @@ const player = {
   rafId: null,
   lastTick: 0,
   paused: false,
-  totalElapsed: 0,
   totalDuration: 0,
+  phase: "exercise", // "setup" | "exercise" | "rest"
+  cuedHalfway: false,
+  cuedTen: false,
+  cuedThree: false,
+  cuedTwo: false,
+  cuedOne: false,
 };
+
+// Build a flattened plan including setup steps before exercises that need them
+function buildPlan(workout) {
+  const plan = [];
+  let prevExercise = null;
+  for (let i = 0; i < workout.items.length; i++) {
+    const item = workout.items[i];
+    if (item.type === "exercise") {
+      const calc = calcSetup(prevExercise, item);
+      if (calc.seconds > 0) {
+        plan.push({
+          type: "setup",
+          duration: calc.seconds,
+          description: calc.description,
+          nextItem: item,
+          nextItemIndex: i,
+        });
+      }
+      plan.push({ ...item, originalIdx: i });
+      prevExercise = item;
+    } else {
+      plan.push({ ...item, originalIdx: i });
+    }
+  }
+  return plan;
+}
 
 async function startPlayer(workout) {
   if (!workout || workout.items.length === 0) return;
-  player.workout = workout;
+  player.workout = { ...workout, plan: buildPlan(workout) };
   player.idx = 0;
   player.paused = false;
-  player.totalElapsed = 0;
-  player.totalDuration = workout.items.reduce((s,i)=>s+(i.duration||0),0);
+  player.totalDuration = player.workout.plan.reduce((s,i)=>s+(i.duration||0),0);
 
   $("#player").classList.add("active");
   $("#player-complete").classList.remove("active");
+
+  // Prime speech synthesis (iOS needs a user-gesture-triggered speak first)
+  primeSpeech();
+
   await loadPlayerStep();
   startTimerLoop();
 
-  // Try to lock screen on if available
+  // Keep screen on during workout
   try {
     if ('wakeLock' in navigator) {
       player.wakeLock = await navigator.wakeLock.request('screen');
@@ -2005,24 +2403,48 @@ async function startPlayer(workout) {
 }
 
 async function loadPlayerStep() {
-  const item = player.workout.items[player.idx];
+  const item = player.workout.plan[player.idx];
   if (!item) { completePlayer(); return; }
 
   player.remaining = item.duration;
+  player.cuedHalfway = false;
+  player.cuedTen = false;
+  player.cuedThree = player.cuedTwo = player.cuedOne = false;
   updatePlayerUI();
 
   const restOverlay = $("#player-rest");
+  const setupOverlay = $("#player-setup");
   const v = $("#player-video");
 
-  if (item.type === "rest") {
+  if (item.type === "setup") {
+    player.phase = "setup";
+    setupOverlay.classList.add("active");
+    restOverlay.classList.remove("active");
+    v.pause();
+    const nextClip = state.clips.find(c => c.id === item.nextItem.clipId);
+    $("#player-setup-what").textContent = item.description || "Get ready";
+    $("#player-setup-next").textContent = nextClip ? `Next: ${nextClip.name}` : "Next exercise";
+    $("#player-setup-timer").textContent = Math.ceil(item.duration);
+    $("#player-name").textContent = "Setup";
+    $("#player-muscle").textContent = item.description || "";
+    $("#player-timer").classList.remove("rest");
+    // Voice cue announcing what to set up + next exercise
+    const announce = `Set up: ${spokenify(item.description)}. Next exercise: ${nextClip?.name || ''}, for ${item.nextItem.duration} seconds.`;
+    speak(announce);
+  } else if (item.type === "rest") {
+    player.phase = "rest";
     restOverlay.classList.add("active");
+    setupOverlay.classList.remove("active");
     v.pause();
     v.removeAttribute("src");
     $("#player-name").textContent = "Rest";
     $("#player-muscle").textContent = "Catch your breath";
     $("#player-timer").classList.add("rest");
+    speak(`Rest, ${item.duration} seconds`);
   } else {
+    player.phase = "exercise";
     restOverlay.classList.remove("active");
+    setupOverlay.classList.remove("active");
     const clip = state.clips.find(c => c.id === item.clipId);
     if (!clip) { nextStep(); return; }
     const url = await getBlobUrl(clip);
@@ -2040,21 +2462,48 @@ async function loadPlayerStep() {
     $("#player-name").textContent = clip.name;
     $("#player-muscle").textContent = clip.muscle;
     $("#player-timer").classList.remove("rest");
+    // Announce the exercise name as it starts (after any setup overlay)
+    speak(`${clip.name}. Go.`);
   }
 }
 
 function updatePlayerUI() {
   const r = Math.max(0, Math.ceil(player.remaining));
   $("#player-timer").textContent = pad(r);
-  $("#player-timer").classList.toggle("urgent", r <= 3 && r > 0);
-  $("#player-progress-label").textContent = `${player.idx + 1} / ${player.workout.items.length}`;
+  $("#player-timer").classList.toggle("urgent", r <= 3 && r > 0 && player.phase !== "setup");
+  $("#player-progress-label").textContent = `${player.idx + 1} / ${player.workout.plan.length}`;
+  $("#player-setup-timer").textContent = r;
 
-  // Compute total elapsed so far
   let elapsed = 0;
-  for (let i = 0; i < player.idx; i++) elapsed += player.workout.items[i].duration;
-  elapsed += (player.workout.items[player.idx]?.duration || 0) - player.remaining;
+  for (let i = 0; i < player.idx; i++) elapsed += player.workout.plan[i].duration;
+  elapsed += (player.workout.plan[player.idx]?.duration || 0) - player.remaining;
   const pct = (elapsed / player.totalDuration) * 100;
   $("#player-progress-fill").style.width = Math.min(100, Math.max(0, pct)) + "%";
+}
+
+// Check whether voice cues should fire for the current second
+function checkVoiceCues(item) {
+  if (!item) return;
+  const total = item.duration;
+  const remaining = player.remaining;
+  // Only do mid-exercise cues during actual exercises (not setup/rest), and only for exercises >= 20s
+  if (item.type === "exercise" && total >= 20) {
+    const halfway = total / 2;
+    if (!player.cuedHalfway && remaining <= halfway && remaining > halfway - 1) {
+      player.cuedHalfway = true;
+      speak("Halfway");
+    }
+    if (!player.cuedTen && remaining <= 10 && remaining > 9) {
+      player.cuedTen = true;
+      speak("Ten seconds");
+    }
+  }
+  // 3-2-1 countdown on transitions for exercises and rest (not setup)
+  if (item.type !== "setup") {
+    if (!player.cuedThree && remaining <= 3 && remaining > 2) { player.cuedThree = true; speak("3"); }
+    if (!player.cuedTwo   && remaining <= 2 && remaining > 1) { player.cuedTwo = true;   speak("2"); }
+    if (!player.cuedOne   && remaining <= 1 && remaining > 0) { player.cuedOne = true;   speak("1"); }
+  }
 }
 
 function startTimerLoop() {
@@ -2064,7 +2513,9 @@ function startTimerLoop() {
     const dt = (now - player.lastTick) / 1000;
     player.lastTick = now;
     if (!player.paused) {
+      const item = player.workout.plan[player.idx];
       player.remaining -= dt;
+      checkVoiceCues(item);
       if (player.remaining <= 0) {
         nextStep();
         return;
@@ -2077,8 +2528,7 @@ function startTimerLoop() {
 }
 
 function nextStep() {
-  if (player.idx >= player.workout.items.length - 1) { completePlayer(); return; }
-  // Beep cue (simple Web Audio click)
+  if (player.idx >= player.workout.plan.length - 1) { completePlayer(); return; }
   try { beep(); } catch(e) {}
   player.idx++;
   loadPlayerStep();
@@ -2086,7 +2536,7 @@ function nextStep() {
 
 function prevStep() {
   if (player.idx <= 0) {
-    player.remaining = player.workout.items[0].duration;
+    player.remaining = player.workout.plan[0].duration;
     updatePlayerUI();
     return;
   }
@@ -2096,6 +2546,9 @@ function prevStep() {
 
 function completePlayer() {
   $("#player-complete").classList.add("active");
+  $("#player-setup").classList.remove("active");
+  $("#player-rest").classList.remove("active");
+  speak("Class complete. Nice work.");
   player.workout = null;
   if (player.rafId) cancelAnimationFrame(player.rafId);
   if (player.wakeLock) { try { player.wakeLock.release(); } catch(e) {} }
@@ -2104,18 +2557,65 @@ function completePlayer() {
 function closePlayer() {
   $("#player").classList.remove("active");
   $("#player-complete").classList.remove("active");
+  $("#player-setup").classList.remove("active");
+  $("#player-rest").classList.remove("active");
   if (player.rafId) cancelAnimationFrame(player.rafId);
   player.workout = null;
   const v = $("#player-video");
   v.pause();
   v.removeAttribute("src");
+  cancelSpeech();
   if (player.wakeLock) { try { player.wakeLock.release(); } catch(e) {} }
+}
+
+/* ============================================================================
+   SPEECH SYNTHESIS — voice cues
+   ========================================================================= */
+function speak(text) {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05;
+    u.pitch = 1.0;
+    u.volume = 1.0;
+    // Pick an English voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice = voices.find(v => v.lang && v.lang.startsWith("en"));
+    if (englishVoice) u.voice = englishVoice;
+    window.speechSynthesis.speak(u);
+  } catch(e) {}
+}
+function cancelSpeech() {
+  try { window.speechSynthesis.cancel(); } catch(e) {}
+}
+function primeSpeech() {
+  // iOS requires speech to start during a user gesture
+  try {
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  } catch(e) {}
+}
+// Make spring/equipment descriptions sound natural when spoken
+function spokenify(desc) {
+  if (!desc) return "";
+  return desc
+    .replace(/·/g, "and")
+    .replace(/×1/g, "one")
+    .replace(/×2/g, "two")
+    .replace(/×3/g, "three")
+    .replace(/\s+/g, " ").trim();
 }
 
 $("#player-close").addEventListener("click", closePlayer);
 $("#player-complete-close").addEventListener("click", closePlayer);
 $("#player-next").addEventListener("click", nextStep);
 $("#player-prev").addEventListener("click", prevStep);
+$("#player-setup-skip").addEventListener("click", () => {
+  // Skip the rest of the setup phase and move on to the exercise
+  cancelSpeech();
+  nextStep();
+});
 $("#player-playpause").addEventListener("click", () => {
   player.paused = !player.paused;
   $("#player-playpause").textContent = player.paused ? "▶" : "❚❚";
@@ -2150,7 +2650,7 @@ function closeSheet(name) {
   $(`#${name}-sheet`).classList.remove("active");
 }
 $$("[data-close]").forEach(b => b.addEventListener("click", () => closeSheet(b.dataset.close)));
-["trim","detail","picker","wdetail"].forEach(n => {
+["trim","detail","picker","wdetail","exset"].forEach(n => {
   const ov = $(`#${n}-overlay`);
   if (ov) ov.addEventListener("click", () => closeSheet(n));
 });
