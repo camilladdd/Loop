@@ -983,6 +983,66 @@
   }
   .player-timer.urgent { animation: pulse 1s infinite; color: var(--accent-warm); }
 
+  /* Backup status badge */
+  .backup-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .backup-status .indicator {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #4cc97a;
+    box-shadow: 0 0 8px #4cc97a;
+  }
+  .backup-status.stale {
+    background: rgba(255, 120, 73, 0.12);
+    border-color: rgba(255, 120, 73, 0.35);
+    color: var(--accent-warm);
+  }
+  .backup-status.stale .indicator { background: var(--accent-warm); box-shadow: 0 0 8px var(--accent-warm); }
+  .backup-status.critical {
+    background: rgba(255, 73, 73, 0.15);
+    border-color: rgba(255, 73, 73, 0.4);
+    color: #ff7a7a;
+    animation: pulse 2s infinite;
+  }
+  .backup-status.critical .indicator { background: #ff4949; box-shadow: 0 0 10px #ff4949; }
+
+  /* Restore prompt banner */
+  .restore-banner {
+    background: linear-gradient(135deg, rgba(214, 255, 61, 0.15), rgba(214, 255, 61, 0.05));
+    border: 1px solid rgba(214, 255, 61, 0.3);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .restore-banner h3 {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--accent);
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  .restore-banner p {
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .restore-banner .actions { display: flex; gap: 8px; }
+
 </style>
 </head>
 <body>
@@ -993,12 +1053,16 @@
       <div class="logo">Loop<span>.</span></div>
       <div class="logo-sub">Move · Build · Play</div>
     </div>
-    <button class="btn ghost" id="install-hint" style="display:none; font-size: 11px;">Add to home</button>
+    <button class="backup-status" id="backup-status" title="Tap to back up now">
+      <span class="indicator"></span>
+      <span id="backup-status-text">Backed up</span>
+    </button>
   </header>
 
   <main>
     <!-- LIBRARY VIEW -->
     <section class="view active" id="view-library">
+      <div id="restore-prompt" style="display:none;"></div>
       <h1 class="page-title">Your <em>clips</em></h1>
       <p class="page-sub">Trim · Tag · Loop</p>
 
@@ -1067,19 +1131,23 @@
     <!-- PROFILE / SETTINGS VIEW -->
     <section class="view" id="view-profile">
       <h1 class="page-title">Loop<em>.</em></h1>
-      <p class="page-sub">About · Storage · Export</p>
+      <p class="page-sub">About · Backup · Storage</p>
 
       <div class="helper-text" style="margin-bottom: 24px;">
         Built for trimming exercise clips from any video on your phone, tagging them by muscle group, and stringing them into timed workout classes. Everything lives privately on this device.
       </div>
 
+      <h2 class="section-title">Backup &amp; restore</h2>
+      <div class="helper-text" style="margin-bottom: 10px;">
+        iOS sometimes clears website storage unpredictably. Back up regularly to keep your clips safe. The backup file includes videos and can be saved to iCloud / Files.
+      </div>
+      <button class="btn full" id="backup-btn" style="margin-bottom: 10px;">⤓ Back up everything (incl. videos)</button>
+      <button class="btn full secondary" id="restore-btn">⤴ Restore from backup file</button>
+      <input type="file" id="restore-file" accept="application/json,.loopbackup" style="display:none;" />
+      <div id="backup-progress" style="display:none; margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--ink-dim); letter-spacing: 0.1em; text-transform: uppercase;"></div>
+
       <h2 class="section-title">Storage</h2>
       <div class="helper-text" id="storage-info">Calculating…</div>
-
-      <h2 class="section-title">Data</h2>
-      <button class="btn full secondary" id="export-btn" style="margin-bottom: 10px;">Export all data (JSON)</button>
-      <button class="btn full secondary" id="import-btn">Import data</button>
-      <input type="file" id="import-file" accept="application/json" style="display:none;" />
 
       <h2 class="section-title">Add to home screen</h2>
       <div class="helper-text">
@@ -2685,46 +2753,161 @@ async function updateStorageInfo() {
   }
 }
 
-$("#export-btn").addEventListener("click", async () => {
-  // Export metadata only (video blobs are too big for casual export)
-  const data = {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    clips: state.clips,
-    workouts: state.workouts,
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `loop-backup-${Date.now()}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  alert("Exported metadata. Note: video files stay on this device only.");
+/* ============================================================================
+   BACKUP & RESTORE — includes video blobs
+   ========================================================================= */
+
+// Convert a Blob to a base64 data URL (works on iOS for any size)
+function blobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+// Convert a base64 data URL back to a Blob
+function dataURLToBlob(dataUrl) {
+  const [meta, b64] = dataUrl.split(",");
+  const mimeMatch = meta.match(/data:([^;]+)/);
+  const mime = mimeMatch ? mimeMatch[1] : "video/mp4";
+  const binStr = atob(b64);
+  const bytes = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+function setBackupProgress(msg) {
+  const el = $("#backup-progress");
+  if (!msg) { el.style.display = "none"; return; }
+  el.style.display = "block";
+  el.textContent = msg;
+}
+
+$("#backup-btn").addEventListener("click", async () => {
+  try {
+    const totalClips = state.clips.length;
+    if (totalClips === 0 && state.workouts.length === 0) {
+      alert("Nothing to back up yet.");
+      return;
+    }
+
+    setBackupProgress("Preparing backup...");
+    const clipsWithBlobs = [];
+    for (let i = 0; i < state.clips.length; i++) {
+      const clip = state.clips[i];
+      setBackupProgress(`Packing ${i+1} / ${totalClips}: ${clip.name}`);
+      const rec = await dbGet(STORE_CLIPS, clip.id);
+      if (rec && rec.blob) {
+        const dataUrl = await blobToDataURL(rec.blob);
+        clipsWithBlobs.push({
+          ...clip,
+          _videoDataUrl: dataUrl,
+          _videoMime: rec.blob.type || "video/mp4",
+        });
+      }
+    }
+
+    const backup = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      appName: "Loop",
+      clips: clipsWithBlobs,
+      workouts: state.workouts,
+    };
+
+    setBackupProgress("Saving file...");
+    const json = JSON.stringify(backup);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.download = `loop-backup-${stamp}.loopbackup`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    setBackupProgress("");
+    const sizeMb = (blob.size / 1024 / 1024).toFixed(1);
+    alert(`Backup saved! ${totalClips} clips · ${sizeMb} MB.\n\nSave the file to iCloud Drive or Files so you can restore later.`);
+  } catch (err) {
+    setBackupProgress("");
+    alert("Backup failed: " + err.message);
+    debugLog("Backup error: " + err.message);
+  }
 });
 
-$("#import-btn").addEventListener("click", () => $("#import-file").click());
-$("#import-file").addEventListener("change", async (e) => {
-  const file = e.target.files[0]; if (!file) return;
+$("#restore-btn").addEventListener("click", () => $("#restore-file").click());
+$("#restore-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
   try {
+    setBackupProgress("Reading backup...");
     const text = await file.text();
     const data = JSON.parse(text);
-    if (data.clips) {
-      // Merge in
-      const existingIds = new Set(state.clips.map(c => c.id));
-      data.clips.forEach(c => { if (!existingIds.has(c.id)) state.clips.push(c); });
-      persistClipsMeta();
+
+    if (!data.clips && !data.workouts) {
+      alert("This doesn't look like a Loop backup file.");
+      setBackupProgress("");
+      return;
     }
-    if (data.workouts) {
-      const existingIds = new Set(state.workouts.map(w => w.id));
-      data.workouts.forEach(w => { if (!existingIds.has(w.id)) state.workouts.push(w); });
-      saveWorkouts(state.workouts);
+
+    const incomingClips = data.clips || [];
+    const incomingWorkouts = data.workouts || [];
+
+    if (state.clips.length > 0 || state.workouts.length > 0) {
+      const ok = confirm(`You already have ${state.clips.length} clips and ${state.workouts.length} classes.\n\nThe backup has ${incomingClips.length} clips and ${incomingWorkouts.length} classes.\n\nTap OK to ADD them (keeping yours). Tap Cancel to abort.`);
+      if (!ok) { setBackupProgress(""); e.target.value = ""; return; }
     }
-    alert("Imported. Note: video files need to be re-uploaded.");
-    renderLibrary();
+
+    const existingClipIds = new Set(state.clips.map(c => c.id));
+    let added = 0;
+    for (let i = 0; i < incomingClips.length; i++) {
+      const c = incomingClips[i];
+      setBackupProgress(`Restoring ${i+1} / ${incomingClips.length}: ${c.name}`);
+      if (existingClipIds.has(c.id)) continue;
+
+      // Reconstruct the blob if present
+      let blob = null;
+      if (c._videoDataUrl) {
+        try { blob = dataURLToBlob(c._videoDataUrl); } catch (err) {
+          debugLog("Failed to decode " + c.name + ": " + err.message);
+        }
+      }
+
+      // Strip the heavy fields out of clip metadata
+      const { _videoDataUrl, _videoMime, ...meta } = c;
+      state.clips.push(meta);
+      if (blob) {
+        await dbPut(STORE_CLIPS, { id: meta.id, blob, thumb: meta.thumb });
+      }
+      added++;
+    }
+
+    const existingWorkoutIds = new Set(state.workouts.map(w => w.id));
+    let workoutsAdded = 0;
+    for (const w of incomingWorkouts) {
+      if (!existingWorkoutIds.has(w.id)) {
+        state.workouts.push(w);
+        workoutsAdded++;
+      }
+    }
+
+    persistClipsMeta();
+    saveWorkouts(state.workouts);
+    setBackupProgress("");
+    await renderLibrary();
     renderWorkouts();
+    updateStorageInfo();
+    alert(`Restored ${added} clip(s) and ${workoutsAdded} class(es).`);
   } catch (err) {
-    alert("Couldn't read file: " + err.message);
+    setBackupProgress("");
+    alert("Restore failed: " + err.message);
+    debugLog("Restore error: " + err.message);
+  } finally {
+    e.target.value = "";
   }
 });
 
@@ -2737,6 +2920,252 @@ $("#reset-btn").addEventListener("click", async () => {
   state.clips = []; state.workouts = []; state.blobUrls = {};
   renderLibrary(); renderWorkouts(); updateStorageInfo();
 });
+
+/* ============================================================================
+   AUTO-BACKUP SYSTEM
+   ----------------------------------------------------------------------------
+   Stores a complete backup (including video blobs) in OPFS (Origin Private
+   File System). OPFS is a separate storage layer from IndexedDB/localStorage,
+   so it survives many of the iOS quirks that wipe regular site data.
+
+   Strategy:
+   - Whenever clips or workouts change, queue a debounced auto-backup
+   - On launch, check if OPFS has a backup
+   - If main data is empty but OPFS has data, OFFER auto-restore at the top
+   - Track when the user last did a manual cloud backup, badge turns
+     orange/red the longer it's been
+   ========================================================================= */
+
+const LS_LAST_CLOUD_BACKUP = "loop_last_cloud_backup";
+const LS_LAST_AUTOBACKUP = "loop_last_autobackup";
+const LS_AUTOBACKUP_CLIPS_HASH = "loop_autobackup_hash";
+const OPFS_BACKUP_NAME = "loop-autobackup.json";
+
+// Quick hash for change detection
+function hashState() {
+  const payload = JSON.stringify({
+    clips: state.clips.map(c => ({id: c.id, name: c.name, m: c.muscle, s: c.start, e: c.end})),
+    workouts: state.workouts.map(w => ({id: w.id, n: w.name, c: w.items.length}))
+  });
+  let h = 0;
+  for (let i = 0; i < payload.length; i++) { h = ((h<<5)-h) + payload.charCodeAt(i); h |= 0; }
+  return h.toString(36);
+}
+
+// OPFS access (with safe fallbacks)
+async function getOPFS() {
+  try {
+    if (!navigator.storage || !navigator.storage.getDirectory) return null;
+    return await navigator.storage.getDirectory();
+  } catch(e) { return null; }
+}
+
+async function saveAutoBackup() {
+  try {
+    const dir = await getOPFS();
+    if (!dir) { debugLog("OPFS unavailable, auto-backup skipped"); return false; }
+
+    debugLog("Auto-backup starting (" + state.clips.length + " clips)...");
+    const clipsWithBlobs = [];
+    for (const clip of state.clips) {
+      const rec = await dbGet(STORE_CLIPS, clip.id);
+      if (rec && rec.blob) {
+        const dataUrl = await blobToDataURL(rec.blob);
+        clipsWithBlobs.push({ ...clip, _videoDataUrl: dataUrl });
+      } else {
+        clipsWithBlobs.push(clip);
+      }
+    }
+
+    const backup = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      auto: true,
+      clips: clipsWithBlobs,
+      workouts: state.workouts,
+    };
+
+    const handle = await dir.getFileHandle(OPFS_BACKUP_NAME, { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(JSON.stringify(backup));
+    await writable.close();
+
+    localStorage.setItem(LS_LAST_AUTOBACKUP, Date.now().toString());
+    localStorage.setItem(LS_AUTOBACKUP_CLIPS_HASH, hashState());
+    debugLog("Auto-backup complete.");
+    updateBackupStatus();
+    return true;
+  } catch (e) {
+    debugLog("Auto-backup failed: " + e.message);
+    return false;
+  }
+}
+
+async function loadAutoBackup() {
+  try {
+    const dir = await getOPFS();
+    if (!dir) return null;
+    const handle = await dir.getFileHandle(OPFS_BACKUP_NAME, { create: false });
+    const file = await handle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  } catch (e) {
+    return null;
+  }
+}
+
+async function deleteAutoBackup() {
+  try {
+    const dir = await getOPFS();
+    if (!dir) return;
+    await dir.removeEntry(OPFS_BACKUP_NAME);
+  } catch (e) {}
+}
+
+// Debounced auto-backup trigger
+let autoBackupTimer = null;
+function scheduleAutoBackup() {
+  if (autoBackupTimer) clearTimeout(autoBackupTimer);
+  autoBackupTimer = setTimeout(() => { saveAutoBackup(); }, 3000);
+}
+
+// Wrap the things that mutate state so we trigger auto-backup
+const _origPersistClipsMeta = persistClipsMeta;
+persistClipsMeta = function() {
+  _origPersistClipsMeta.apply(this, arguments);
+  scheduleAutoBackup();
+};
+const _origSaveWorkouts = saveWorkouts;
+saveWorkouts = function(arr) {
+  _origSaveWorkouts.call(this, arr);
+  scheduleAutoBackup();
+};
+
+// Update the status pill in the header
+function updateBackupStatus() {
+  const el = $("#backup-status");
+  const txt = $("#backup-status-text");
+  if (!el || !txt) return;
+  const last = parseInt(localStorage.getItem(LS_LAST_CLOUD_BACKUP) || "0");
+  const lastAuto = parseInt(localStorage.getItem(LS_LAST_AUTOBACKUP) || "0");
+  const now = Date.now();
+  const totalClips = state.clips.length;
+
+  if (totalClips === 0) {
+    el.style.display = "none";
+    return;
+  }
+  el.style.display = "inline-flex";
+
+  const hoursSinceCloud = (now - last) / (1000 * 60 * 60);
+  const lastHash = localStorage.getItem(LS_AUTOBACKUP_CLIPS_HASH) || "";
+  const currHash = hashState();
+  const dirty = lastHash !== currHash;
+
+  if (last === 0) {
+    el.className = "backup-status critical";
+    txt.textContent = "No cloud backup ⚠";
+  } else if (hoursSinceCloud > 72) {
+    el.className = "backup-status critical";
+    txt.textContent = "Back up · " + Math.floor(hoursSinceCloud/24) + "d ago";
+  } else if (hoursSinceCloud > 24 || dirty) {
+    el.className = "backup-status stale";
+    txt.textContent = "Back up · " + (hoursSinceCloud < 24 ? "new clips" : Math.floor(hoursSinceCloud) + "h ago");
+  } else {
+    el.className = "backup-status";
+    txt.textContent = "Backed up · " + Math.floor(hoursSinceCloud) + "h ago";
+  }
+}
+
+// Tap the status pill to trigger a cloud backup
+$("#backup-status").addEventListener("click", () => {
+  $("#backup-btn").click();
+});
+
+// After a successful cloud backup, mark the time
+const _origBackupBtn = $("#backup-btn");
+_origBackupBtn.addEventListener("click", async () => {
+  // The original handler runs the actual save; we just record the time after
+  setTimeout(() => {
+    localStorage.setItem(LS_LAST_CLOUD_BACKUP, Date.now().toString());
+    updateBackupStatus();
+  }, 500);
+});
+
+// Check on launch if we should offer a restore
+async function checkRestoreOnLaunch() {
+  try {
+    // If user already has data, no restore needed
+    if (state.clips.length > 0 || state.workouts.length > 0) return;
+
+    const backup = await loadAutoBackup();
+    if (!backup) return;
+    const clipCount = (backup.clips || []).length;
+    const workoutCount = (backup.workouts || []).length;
+    if (clipCount === 0 && workoutCount === 0) return;
+
+    const date = new Date(backup.exportedAt);
+    const dateStr = date.toLocaleString();
+
+    const banner = $("#restore-prompt");
+    banner.style.display = "block";
+    banner.innerHTML = `
+      <div class="restore-banner">
+        <h3>Your data seems gone</h3>
+        <p>I found an auto-backup from ${dateStr} with ${clipCount} clip(s) and ${workoutCount} class(es). Restore it now?</p>
+        <div class="actions">
+          <button class="btn" id="restore-auto-yes" style="flex:1;">Restore</button>
+          <button class="btn secondary" id="restore-auto-no" style="flex:1;">Dismiss</button>
+        </div>
+      </div>
+    `;
+    $("#restore-auto-yes").addEventListener("click", async () => {
+      await restoreFromAutoBackup(backup);
+      banner.style.display = "none";
+      banner.innerHTML = "";
+    });
+    $("#restore-auto-no").addEventListener("click", () => {
+      banner.style.display = "none";
+      banner.innerHTML = "";
+    });
+  } catch (e) {
+    debugLog("checkRestoreOnLaunch error: " + e.message);
+  }
+}
+
+async function restoreFromAutoBackup(backup) {
+  try {
+    setBackupProgress("Restoring " + (backup.clips || []).length + " clips...");
+    const clips = backup.clips || [];
+    for (let i = 0; i < clips.length; i++) {
+      const c = clips[i];
+      setBackupProgress(`Restoring ${i+1} / ${clips.length}: ${c.name}`);
+      let blob = null;
+      if (c._videoDataUrl) {
+        try { blob = dataURLToBlob(c._videoDataUrl); } catch (e) {}
+      }
+      const { _videoDataUrl, _videoMime, ...meta } = c;
+      state.clips.push(meta);
+      if (blob) await dbPut(STORE_CLIPS, { id: meta.id, blob, thumb: meta.thumb });
+    }
+    state.workouts = backup.workouts || [];
+    _origPersistClipsMeta();
+    _origSaveWorkouts(state.workouts);
+    setBackupProgress("");
+    await renderLibrary();
+    renderWorkouts();
+    updateBackupStatus();
+    alert("Restored " + clips.length + " clips and " + (backup.workouts||[]).length + " classes from auto-backup.");
+  } catch (e) {
+    setBackupProgress("");
+    alert("Restore failed: " + e.message);
+  }
+}
+
+// Run on launch
+setTimeout(() => { checkRestoreOnLaunch(); updateBackupStatus(); }, 800);
+// Refresh the badge every minute
+setInterval(updateBackupStatus, 60 * 1000);
 
 /* ============================================================================
    DEBUG STRIP - so we can see what's happening on a phone
