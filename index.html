@@ -419,6 +419,71 @@
     max-height: 50vh;
     background: #000;
   }
+
+  /* Crop overlay */
+  .crop-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: none;
+  }
+  .crop-overlay.active { display: block; }
+  .crop-mask-top,
+  .crop-mask-bottom,
+  .crop-mask-left,
+  .crop-mask-right {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.6);
+    pointer-events: auto;
+  }
+  .crop-box {
+    position: absolute;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+    pointer-events: auto;
+    cursor: move;
+    box-sizing: border-box;
+  }
+  .crop-box::before,
+  .crop-box::after,
+  .crop-box .h1,
+  .crop-box .h2 {
+    content: "";
+    position: absolute;
+    background: rgba(255,255,255,0.3);
+  }
+  .crop-box::before { left: 33%; top: 0; bottom: 0; width: 1px; }
+  .crop-box::after { left: 66%; top: 0; bottom: 0; width: 1px; }
+  .crop-box .h1 { top: 33%; left: 0; right: 0; height: 1px; display: block; }
+  .crop-box .h2 { top: 66%; left: 0; right: 0; height: 1px; display: block; }
+  .crop-handle {
+    position: absolute;
+    width: 24px; height: 24px;
+    background: var(--accent);
+    border: 2px solid #000;
+    border-radius: 50%;
+    pointer-events: auto;
+    cursor: nwse-resize;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  .crop-handle.tl { top: -12px; left: -12px; cursor: nwse-resize; }
+  .crop-handle.tr { top: -12px; right: -12px; cursor: nesw-resize; }
+  .crop-handle.bl { bottom: -12px; left: -12px; cursor: nesw-resize; }
+  .crop-handle.br { bottom: -12px; right: -12px; cursor: nwse-resize; }
+
+  .crop-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .crop-toolbar button {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
   .trim-controls {
     background: var(--bg-elev-2);
     padding: 16px;
@@ -595,23 +660,38 @@
     flex-direction: column;
   }
   .player-overlay.active { display: flex; }
+  .player-top-bar {
+    padding: calc(14px + var(--safe-top)) 16px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+  }
   .player-video-wrap {
-    flex: 1;
+    flex: 1 1 0;
     position: relative;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: #000;
+    min-height: 0;
   }
   .player-video-wrap video {
     width: 100%; height: 100%; object-fit: contain;
   }
-  .player-overlay-content {
-    position: absolute;
-    inset: 0;
+  .player-info-panel {
+    flex-shrink: 0;
+    background: var(--bg);
+    padding: 20px 22px calc(20px + var(--safe-bottom));
     display: flex;
     flex-direction: column;
-    pointer-events: none;
+    align-items: center;
+    border-top: 1px solid var(--line);
+  }
+  .player-overlay-content {
+    /* Keep for legacy IDs but it's no longer the layout driver */
+    display: none;
   }
   .player-top {
     padding: calc(20px + var(--safe-top)) 20px 20px;
@@ -622,14 +702,14 @@
     pointer-events: auto;
   }
   .player-close {
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #fff;
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
     width: 40px; height: 40px;
     border-radius: 50%;
     font-size: 18px;
     cursor: pointer;
+    flex-shrink: 0;
   }
   .player-progress {
     flex: 1;
@@ -637,7 +717,7 @@
   }
   .player-progress-track {
     height: 4px;
-    background: rgba(255,255,255,0.15);
+    background: var(--line-strong);
     border-radius: 2px;
     overflow: hidden;
   }
@@ -650,7 +730,7 @@
   .player-progress-label {
     font-family: var(--mono);
     font-size: 10px;
-    color: rgba(255,255,255,0.7);
+    color: var(--ink-dim);
     margin-top: 6px;
     letter-spacing: 0.15em;
     text-transform: uppercase;
@@ -676,25 +756,26 @@
   .player-timer-big {
     font-family: var(--display);
     font-weight: 300;
-    font-size: 76px;
+    font-size: 88px;
     line-height: 0.9;
     letter-spacing: -0.05em;
-    color: #fff;
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
     text-align: center;
-    text-shadow: 0 4px 24px rgba(0,0,0,0.6);
+    margin-bottom: 14px;
   }
   .player-timer-big.urgent { color: var(--accent-warm); animation: pulse 1s infinite; }
   .player-timer-big.rest { color: var(--accent-warm); font-style: italic; }
+  .player-timer-wrap { display: flex; justify-content: center; }
   .player-exercise-name {
     font-family: var(--display);
     font-weight: 500;
-    font-size: 30px;
-    line-height: 1.05;
-    letter-spacing: -0.03em;
-    color: #fff;
-    margin-bottom: 4px;
-    text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+    font-size: 26px;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    margin-bottom: 6px;
+    text-align: center;
   }
   .player-exercise-meta {
     font-family: var(--mono);
@@ -702,19 +783,25 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 18px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .player-name-wrap, .player-meta-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
   }
   .player-equipment-row {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin-bottom: 18px;
+    justify-content: center;
   }
   .player-eq-chip {
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: #fff;
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
     padding: 5px 11px;
     border-radius: 999px;
     font-family: var(--mono);
@@ -733,10 +820,9 @@
     gap: 24px;
   }
   .player-controls button {
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: #fff;
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
     width: 52px; height: 52px;
     border-radius: 50%;
     cursor: pointer;
@@ -1253,8 +1339,27 @@
     </div>
 
     <div id="trim-step-edit" style="display:none;">
-      <div class="trim-stage">
+      <div class="trim-stage" id="trim-stage">
         <video id="trim-video" playsinline muted loop preload="auto"></video>
+        <div class="crop-overlay" id="crop-overlay">
+          <div class="crop-mask-top" id="crop-mask-top"></div>
+          <div class="crop-mask-bottom" id="crop-mask-bottom"></div>
+          <div class="crop-mask-left" id="crop-mask-left"></div>
+          <div class="crop-mask-right" id="crop-mask-right"></div>
+          <div class="crop-box" id="crop-box">
+            <span class="h1"></span><span class="h2"></span>
+            <div class="crop-handle tl" data-corner="tl"></div>
+            <div class="crop-handle tr" data-corner="tr"></div>
+            <div class="crop-handle bl" data-corner="bl"></div>
+            <div class="crop-handle br" data-corner="br"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="crop-toolbar">
+        <button class="btn secondary" id="crop-toggle-btn">✂ Crop</button>
+        <button class="btn secondary" id="crop-reset-btn" style="display:none;">Reset</button>
+        <button class="btn" id="crop-done-btn" style="display:none;">Done</button>
       </div>
 
       <div class="trim-controls">
@@ -1379,6 +1484,16 @@
 
 <!-- Player overlay -->
 <div class="player-overlay" id="player">
+  <div class="player-top-bar">
+    <button class="player-close" id="player-close">×</button>
+    <div class="player-progress">
+      <div class="player-progress-track">
+        <div class="player-progress-fill" id="player-progress-fill"></div>
+      </div>
+      <div class="player-progress-label" id="player-progress-label">1 / 1</div>
+    </div>
+    <div style="width:40px;"></div>
+  </div>
   <div class="player-video-wrap">
     <video id="player-video" playsinline muted loop autoplay></video>
     <div class="player-rest-overlay" id="player-rest">
@@ -1392,31 +1507,18 @@
       <button class="btn skip-btn" id="player-setup-skip">I'm ready ▶</button>
     </div>
   </div>
-  <div class="player-overlay-content">
-    <div class="player-top-content">
-      <div class="player-top-row">
-        <button class="player-close" id="player-close">×</button>
-        <div class="player-progress">
-          <div class="player-progress-track">
-            <div class="player-progress-fill" id="player-progress-fill"></div>
-          </div>
-          <div class="player-progress-label" id="player-progress-label">1 / 1</div>
-        </div>
-        <div style="width:40px;"></div>
-      </div>
+  <div class="player-info-panel">
+    <div class="player-timer-wrap">
       <div class="player-timer-big" id="player-timer-big">00</div>
     </div>
-    <div style="flex:1;"></div>
-    <div class="player-bottom">
-      <div class="player-exercise-name" id="player-name">Ready</div>
-      <div class="player-exercise-meta" id="player-muscle">·</div>
-      <div class="player-equipment-row" id="player-equipment"></div>
-      <div class="player-timer" id="player-timer">00</div>
-      <div class="player-controls">
-        <button id="player-prev">◀◀</button>
-        <button class="play-pause" id="player-playpause">▶</button>
-        <button id="player-next">▶▶</button>
-      </div>
+    <div class="player-name-wrap"><div class="player-exercise-name" id="player-name">Ready</div></div>
+    <div class="player-meta-wrap"><div class="player-exercise-meta" id="player-muscle">·</div></div>
+    <div class="player-equipment-row" id="player-equipment"></div>
+    <div class="player-timer" id="player-timer" style="display:none;">00</div>
+    <div class="player-controls">
+      <button id="player-prev">◀◀</button>
+      <button class="play-pause" id="player-playpause">▶</button>
+      <button id="player-next">▶▶</button>
     </div>
   </div>
   <div class="player-complete" id="player-complete">
@@ -1813,8 +1915,6 @@ async function deleteClip(id) {
 
 const LS_CLIPS = "loop_clips_meta";
 function persistClipsMeta() {
-  // thumb URLs are stored in IndexedDB along with the blob, NOT in localStorage
-  // localStorage only holds lightweight metadata
   const meta = state.clips.map(c => ({
     id: c.id,
     name: c.name,
@@ -1826,6 +1926,7 @@ function persistClipsMeta() {
     createdAt: c.createdAt,
     defaultSprings: c.defaultSprings || [],
     defaultEquipment: c.defaultEquipment || [],
+    crop: c.crop || null,
   }));
   try {
     localStorage.setItem(LS_CLIPS, JSON.stringify(meta));
@@ -1886,6 +1987,14 @@ function initTrimEditor(fileOrBlob, existingClip = null) {
   v.src = url;
   v.load();
 
+  // Reset crop UI
+  state.trimCrop = (existingClip && existingClip.crop) ? { ...existingClip.crop } : null;
+  $("#crop-overlay").classList.remove("active");
+  $("#crop-toggle-btn").style.display = "";
+  $("#crop-reset-btn").style.display = "none";
+  $("#crop-done-btn").style.display = "none";
+  $("#crop-toggle-btn").textContent = state.trimCrop ? "✂ Edit crop" : "✂ Crop";
+
   v.addEventListener("loadedmetadata", () => {
     state.trimDuration = v.duration || 10;
     const startSlider = $("#trim-start");
@@ -1932,6 +2041,165 @@ function initTrimEditor(fileOrBlob, existingClip = null) {
     }
   });
 }
+
+/* ============================================================================
+   CROP — drag/resize a rectangle on the trim video; stored as % of video frame
+   ========================================================================= */
+function getVideoDisplayRect() {
+  // The <video> element may letterbox; compute the actual visible video area inside it
+  const v = $("#trim-video");
+  const vidW = v.videoWidth || 1;
+  const vidH = v.videoHeight || 1;
+  const elW = v.clientWidth;
+  const elH = v.clientHeight;
+  const vidRatio = vidW / vidH;
+  const elRatio = elW / elH;
+  let w, h, left, top;
+  if (elRatio > vidRatio) {
+    // letterboxed on sides
+    h = elH;
+    w = elH * vidRatio;
+    left = (elW - w) / 2;
+    top = 0;
+  } else {
+    w = elW;
+    h = elW / vidRatio;
+    left = 0;
+    top = (elH - h) / 2;
+  }
+  return { left, top, width: w, height: h };
+}
+
+function applyCropToOverlay(crop) {
+  // crop = {x, y, w, h} as percentages (0-1) of the video frame
+  const r = getVideoDisplayRect();
+  const stage = $("#trim-stage");
+  const stageRect = stage.getBoundingClientRect();
+  // The crop overlay is positioned relative to the stage; mask offsets must match
+  // Video element fills the stage (we set width:100%), so r is relative to stage already
+  const boxLeft = r.left + crop.x * r.width;
+  const boxTop = r.top + crop.y * r.height;
+  const boxWidth = crop.w * r.width;
+  const boxHeight = crop.h * r.height;
+  const box = $("#crop-box");
+  box.style.left = boxLeft + "px";
+  box.style.top = boxTop + "px";
+  box.style.width = boxWidth + "px";
+  box.style.height = boxHeight + "px";
+  // Masks
+  $("#crop-mask-top").style.cssText = `left:0; top:0; right:0; height:${boxTop}px;`;
+  $("#crop-mask-bottom").style.cssText = `left:0; right:0; top:${boxTop + boxHeight}px; bottom:0;`;
+  $("#crop-mask-left").style.cssText = `left:0; top:${boxTop}px; height:${boxHeight}px; width:${boxLeft}px;`;
+  $("#crop-mask-right").style.cssText = `right:0; top:${boxTop}px; height:${boxHeight}px; left:${boxLeft + boxWidth}px;`;
+}
+
+let cropDrag = null;
+function setupCropDrag() {
+  const overlay = $("#crop-overlay");
+  const box = $("#crop-box");
+
+  function onStart(e, mode, corner) {
+    e.preventDefault();
+    const point = (e.touches && e.touches[0]) || e;
+    cropDrag = {
+      mode, corner,
+      startX: point.clientX,
+      startY: point.clientY,
+      origCrop: { ...state.trimCrop },
+    };
+  }
+
+  function onMove(e) {
+    if (!cropDrag) return;
+    e.preventDefault();
+    const point = (e.touches && e.touches[0]) || e;
+    const r = getVideoDisplayRect();
+    const dxPct = (point.clientX - cropDrag.startX) / r.width;
+    const dyPct = (point.clientY - cropDrag.startY) / r.height;
+    let { x, y, w, h } = cropDrag.origCrop;
+
+    if (cropDrag.mode === "move") {
+      x = Math.max(0, Math.min(1 - w, x + dxPct));
+      y = Math.max(0, Math.min(1 - h, y + dyPct));
+    } else if (cropDrag.mode === "resize") {
+      const corner = cropDrag.corner;
+      if (corner === "br") {
+        w = Math.max(0.1, Math.min(1 - x, w + dxPct));
+        h = Math.max(0.1, Math.min(1 - y, h + dyPct));
+      } else if (corner === "tr") {
+        const newH = Math.max(0.1, h - dyPct);
+        const newY = Math.max(0, Math.min(y + h - 0.1, y + dyPct));
+        w = Math.max(0.1, Math.min(1 - x, w + dxPct));
+        h = newH; y = newY;
+      } else if (corner === "bl") {
+        const newW = Math.max(0.1, w - dxPct);
+        const newX = Math.max(0, Math.min(x + w - 0.1, x + dxPct));
+        h = Math.max(0.1, Math.min(1 - y, h + dyPct));
+        w = newW; x = newX;
+      } else if (corner === "tl") {
+        const newW = Math.max(0.1, w - dxPct);
+        const newX = Math.max(0, Math.min(x + w - 0.1, x + dxPct));
+        const newH = Math.max(0.1, h - dyPct);
+        const newY = Math.max(0, Math.min(y + h - 0.1, y + dyPct));
+        w = newW; x = newX; h = newH; y = newY;
+      }
+    }
+    state.trimCrop = { x, y, w, h };
+    applyCropToOverlay(state.trimCrop);
+  }
+
+  function onEnd() { cropDrag = null; }
+
+  box.addEventListener("mousedown", e => {
+    if (e.target.classList.contains("crop-handle")) return;
+    onStart(e, "move");
+  });
+  box.addEventListener("touchstart", e => {
+    if (e.target.classList.contains("crop-handle")) return;
+    onStart(e, "move");
+  }, { passive: false });
+
+  $$(".crop-handle", overlay).forEach(h => {
+    h.addEventListener("mousedown", e => onStart(e, "resize", h.dataset.corner));
+    h.addEventListener("touchstart", e => onStart(e, "resize", h.dataset.corner), { passive: false });
+  });
+
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("touchmove", onMove, { passive: false });
+  document.addEventListener("mouseup", onEnd);
+  document.addEventListener("touchend", onEnd);
+}
+setupCropDrag();
+
+$("#crop-toggle-btn").addEventListener("click", () => {
+  // Initialize default crop if none exists
+  if (!state.trimCrop) {
+    state.trimCrop = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+  }
+  $("#crop-overlay").classList.add("active");
+  $("#crop-toggle-btn").style.display = "none";
+  $("#crop-reset-btn").style.display = "";
+  $("#crop-done-btn").style.display = "";
+  // Wait for layout, then position the overlay
+  setTimeout(() => applyCropToOverlay(state.trimCrop), 50);
+});
+
+$("#crop-reset-btn").addEventListener("click", () => {
+  state.trimCrop = null;
+  $("#crop-overlay").classList.remove("active");
+  $("#crop-toggle-btn").style.display = "";
+  $("#crop-toggle-btn").textContent = "✂ Crop";
+  $("#crop-reset-btn").style.display = "none";
+  $("#crop-done-btn").style.display = "none";
+});
+
+$("#crop-done-btn").addEventListener("click", () => {
+  $("#crop-overlay").classList.remove("active");
+  $("#crop-toggle-btn").style.display = "";
+  $("#crop-toggle-btn").textContent = "✂ Edit crop";
+  $("#crop-reset-btn").style.display = "none";
+  $("#crop-done-btn").style.display = "none";
+});
 
 function updateTrimUI() {
   const dur = state.trimDuration || 1;
@@ -1988,20 +2256,29 @@ $$("#clip-equipment-pills .equipment-pill").forEach(p => {
 });
 
 // Generate a thumbnail (JPEG data URL) from current trim start frame
-async function generateThumbnail(videoEl, atTime) {
+async function generateThumbnail(videoEl, atTime, crop = null) {
   return new Promise((resolve) => {
     try {
       const v = videoEl;
-      const w = Math.min(400, v.videoWidth || 400);
-      const h = w * ((v.videoHeight || 500) / (v.videoWidth || 400));
+      const vidW = v.videoWidth || 400;
+      const vidH = v.videoHeight || 500;
+      let sx = 0, sy = 0, sw = vidW, sh = vidH;
+      if (crop) {
+        sx = crop.x * vidW;
+        sy = crop.y * vidH;
+        sw = crop.w * vidW;
+        sh = crop.h * vidH;
+      }
+      const targetW = Math.min(400, sw);
+      const targetH = targetW * (sh / sw);
       const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
+      canvas.width = targetW;
+      canvas.height = targetH;
       const ctx = canvas.getContext("2d");
 
       const seekAndCapture = () => {
         try {
-          ctx.drawImage(v, 0, 0, w, h);
+          ctx.drawImage(v, sx, sy, sw, sh, 0, 0, targetW, targetH);
           const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
           resolve(dataUrl);
         } catch (e) {
@@ -2010,18 +2287,15 @@ async function generateThumbnail(videoEl, atTime) {
         }
       };
 
-      // If already near the target time, capture immediately
       if (Math.abs(v.currentTime - atTime) < 0.2) {
         seekAndCapture();
       } else {
         const onSeeked = () => {
           v.removeEventListener("seeked", onSeeked);
-          // Small delay for safari to render the frame
           setTimeout(seekAndCapture, 50);
         };
         v.addEventListener("seeked", onSeeked);
         v.currentTime = atTime;
-        // Fallback if seek doesn't fire
         setTimeout(() => {
           v.removeEventListener("seeked", onSeeked);
           seekAndCapture();
@@ -2040,7 +2314,7 @@ async function saveCurrentClip(continueAdding) {
   if (!state.trimMuscles || state.trimMuscles.length === 0) { alert("Pick at least one muscle group."); return false; }
 
   const v = $("#trim-video");
-  const thumb = await generateThumbnail(v, state.trimStart + 0.1);
+  const thumb = await generateThumbnail(v, state.trimStart + 0.1, state.trimCrop);
 
   const defaultSprings = $$("#clip-springs-pills .spring-pill.active").map(p => p.dataset.spring);
   const defaultEquipment = $$("#clip-equipment-pills .equipment-pill.active").map(p => p.dataset.equipment);
@@ -2051,12 +2325,13 @@ async function saveCurrentClip(continueAdding) {
     if (clip) {
       clip.name = name;
       clip.muscles = muscles;
-      clip.muscle = muscles[0] || ""; // legacy single-field for old code paths
+      clip.muscle = muscles[0] || "";
       clip.credit = $("#clip-credit").value.trim();
       clip.start = state.trimStart;
       clip.end = state.trimEnd;
       clip.defaultSprings = defaultSprings;
       clip.defaultEquipment = defaultEquipment;
+      clip.crop = state.trimCrop ? { ...state.trimCrop } : null;
       if (thumb) {
         clip.thumb = thumb;
         const rec = await dbGet(STORE_CLIPS, clip.id);
@@ -2076,6 +2351,7 @@ async function saveCurrentClip(continueAdding) {
       thumb: thumb || null,
       defaultSprings,
       defaultEquipment,
+      crop: state.trimCrop ? { ...state.trimCrop } : null,
       createdAt: Date.now(),
     };
     state.clips.unshift(clip);
@@ -2158,6 +2434,7 @@ function renderWorkouts() {
   state.workouts.forEach(w => {
     const exercises = w.items.filter(i => i.type === "exercise").length;
     const total = w.items.reduce((s, i) => s + (i.duration || 0), 0);
+    const stats = classSessionStats(w.id);
     const card = document.createElement("div");
     card.className = "workout-card";
     card.innerHTML = `
@@ -2165,6 +2442,7 @@ function renderWorkouts() {
       <div class="stats">
         <span><strong>${exercises}</strong> moves</span>
         <span><strong>${fmtTime(total)}</strong></span>
+        ${stats.count > 0 ? `<span><strong>${stats.count}×</strong> done</span>` : ''}
       </div>
     `;
     card.addEventListener("click", () => openWorkoutDetail(w.id));
@@ -2724,6 +3002,7 @@ async function loadPlayerStep() {
     setupOverlay.classList.add("active");
     restOverlay.classList.remove("active");
     v.pause();
+    applyPlayerCrop(null); // reset crop
     const nextClip = state.clips.find(c => c.id === item.nextItem.clipId);
     $("#player-setup-what").textContent = item.description || "Get ready";
     $("#player-setup-next").textContent = nextClip ? `Next: ${nextClip.name}` : "Next exercise";
@@ -2740,6 +3019,7 @@ async function loadPlayerStep() {
     setupOverlay.classList.remove("active");
     v.pause();
     v.removeAttribute("src");
+    applyPlayerCrop(null);
     $("#player-name").textContent = "Rest";
     $("#player-muscle").textContent = "Catch your breath";
     $("#player-equipment").innerHTML = "";
@@ -2758,6 +3038,8 @@ async function loadPlayerStep() {
     v.addEventListener("loadedmetadata", () => {
       v.currentTime = clip.start;
       v.play().catch(()=>{});
+      // Apply crop transform now that we know video dimensions
+      applyPlayerCrop(clip);
     }, { once: true });
     v.ontimeupdate = () => {
       if (v.currentTime >= clip.end || v.currentTime < clip.start - 0.1) {
@@ -2789,6 +3071,42 @@ async function loadPlayerStep() {
 
     speak(`${clip.name}. Go.`);
   }
+}
+
+function applyPlayerCrop(clip) {
+  const v = $("#player-video");
+  const wrap = v.parentElement; // .player-video-wrap
+  if (!clip || !clip.crop) {
+    // No crop - reset to default
+    v.style.transform = "";
+    v.style.transformOrigin = "";
+    v.style.width = "100%";
+    v.style.height = "100%";
+    v.style.objectFit = "contain";
+    return;
+  }
+  const crop = clip.crop;
+  const vidW = v.videoWidth || 1;
+  const vidH = v.videoHeight || 1;
+  const wrapW = wrap.clientWidth;
+  const wrapH = wrap.clientHeight;
+  // Crop region in video pixels
+  const cropPxW = crop.w * vidW;
+  const cropPxH = crop.h * vidH;
+  // Scale to fit the wrapper, maintaining aspect ratio
+  const scale = Math.min(wrapW / cropPxW, wrapH / cropPxH);
+  const finalW = vidW * scale;
+  const finalH = vidH * scale;
+  // Position so the crop region is centered in the wrapper
+  const offsetX = (wrapW - finalW) / 2 - (crop.x * vidW * scale) + (wrapW - cropPxW * scale) / 2;
+  const offsetY = (wrapH - finalH) / 2 - (crop.y * vidH * scale) + (wrapH - cropPxH * scale) / 2;
+  v.style.objectFit = "fill";
+  v.style.width = finalW + "px";
+  v.style.height = finalH + "px";
+  v.style.position = "absolute";
+  v.style.left = (-(crop.x * finalW)) + ((wrapW - cropPxW * scale) / 2) + "px";
+  v.style.top = (-(crop.y * finalH)) + ((wrapH - cropPxH * scale) / 2) + "px";
+  v.style.transform = "";
 }
 
 function updatePlayerUI() {
@@ -3105,21 +3423,25 @@ function renderHistory() {
   const totalMins = Math.round(all.reduce((s, r) => s + (r.durationSeconds || 0), 0) / 60);
   let html = `<div style="font-family:var(--mono); font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin-bottom: 14px;">${all.length} classes · ${totalMins} min total</div>`;
   html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
-  for (const r of all.slice(0, 20)) {
-    const date = new Date(r.endedAt);
-    const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  for (const r of all.slice(0, 30)) {
+    const start = new Date(r.startedAt || r.endedAt);
+    const end = new Date(r.endedAt);
+    const dateStr = end.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const startTime = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const endTime = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
     const mins = Math.round((r.durationSeconds || 0) / 60);
     html += `
-      <div style="background: var(--bg-elev); border:1px solid var(--line); border-radius:12px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <div style="font-weight:600; font-size:13px; color: var(--ink); margin-bottom: 2px;">${escapeHtml(r.workoutName || 'Class')}</div>
-          <div style="font-family: var(--mono); font-size:10px; letter-spacing:0.1em; color: var(--ink-faint);">${dateStr} · ${timeStr}</div>
+      <div style="background: var(--bg-elev); border:1px solid var(--line); border-radius:12px; padding:12px 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+          <div style="font-weight:600; font-size:14px; color: var(--ink);">${escapeHtml(r.workoutName || 'Class')}</div>
+          <div style="font-family:var(--mono); font-size:11px; color: var(--accent); letter-spacing:0.1em;">${mins}min</div>
         </div>
-        <div style="font-family:var(--mono); font-size:11px; color: var(--accent); letter-spacing:0.1em;">${mins}min</div>
+        <div style="font-family: var(--mono); font-size:10px; letter-spacing:0.1em; color: var(--ink-faint); text-transform: uppercase;">
+          ${dateStr} · ${startTime} → ${endTime}
+        </div>
       </div>`;
   }
-  if (all.length > 20) html += `<div style="text-align:center; margin-top: 6px; font-family:var(--mono); font-size:10px; color: var(--ink-faint); letter-spacing:0.1em;">+ ${all.length - 20} earlier</div>`;
+  if (all.length > 30) html += `<div style="text-align:center; margin-top: 6px; font-family:var(--mono); font-size:10px; color: var(--ink-faint); letter-spacing:0.1em;">+ ${all.length - 30} earlier</div>`;
   html += `</div>`;
   el.innerHTML = html;
 }
