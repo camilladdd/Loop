@@ -1634,6 +1634,8 @@ async function openClipDetail(id) {
   if (!clip) return;
   const url = await getBlobUrl(clip);
   const body = $("#detail-body");
+  const currentSprings = clip.defaultSprings || [];
+  const currentEquipment = clip.defaultEquipment || [];
   body.innerHTML = `
     <div class="trim-stage" style="margin-bottom: 16px;">
       ${url ? `<video src="${url}" id="detail-video" muted playsinline loop preload="auto"></video>` : ""}
@@ -1654,6 +1656,18 @@ async function openClipDetail(id) {
       <input type="text" id="detail-credit" value="${escapeHtml(clip.credit || '')}" placeholder="@creator" />
     </div>
     <div class="field">
+      <label>Default springs</label>
+      <div class="tag-pills" id="detail-springs-pills">
+        ${SPRINGS.map(s => `<button class="spring-pill ${currentSprings.includes(s.id) ? 'active' : ''}" data-spring="${s.id}"><span class="dot"></span>${s.label}</button>`).join("")}
+      </div>
+    </div>
+    <div class="field">
+      <label>Default equipment</label>
+      <div class="equipment-grid" id="detail-equipment-pills">
+        ${EQUIPMENT.map(e => `<button class="equipment-pill ${currentEquipment.includes(e.id) ? 'active' : ''}" data-equipment="${e.id}"><span class="icon">${e.icon}</span>${e.label}</button>`).join("")}
+      </div>
+    </div>
+    <div class="field">
       <label>Trim range</label>
       <div class="helper-text" id="detail-trim-info">Start ${clip.start.toFixed(2)}s · End ${clip.end.toFixed(2)}s · ${(clip.end - clip.start).toFixed(1)}s loop</div>
       <button class="btn secondary full" id="detail-retrim">Re-trim</button>
@@ -1662,7 +1676,6 @@ async function openClipDetail(id) {
     <button class="btn full" id="detail-delete" style="margin-top: 10px; background: #2a1010; color: #ff7849; border: 1px solid #5a2020;">Delete clip</button>
   `;
 
-  // Loop the detail video
   const v = $("#detail-video");
   if (v) {
     v.addEventListener("loadedmetadata", () => {
@@ -1685,10 +1698,21 @@ async function openClipDetail(id) {
     });
   });
 
+  // Springs toggle (multi-select)
+  $$("#detail-springs-pills .spring-pill").forEach(p => {
+    p.addEventListener("click", () => p.classList.toggle("active"));
+  });
+  // Equipment toggle (multi-select)
+  $$("#detail-equipment-pills .equipment-pill").forEach(p => {
+    p.addEventListener("click", () => p.classList.toggle("active"));
+  });
+
   $("#detail-save").addEventListener("click", () => {
     clip.name = $("#detail-name").value.trim() || clip.name;
     clip.muscle = editMuscle;
     clip.credit = $("#detail-credit").value.trim();
+    clip.defaultSprings = $$("#detail-springs-pills .spring-pill.active").map(p => p.dataset.spring);
+    clip.defaultEquipment = $$("#detail-equipment-pills .equipment-pill.active").map(p => p.dataset.equipment);
     persistClipsMeta();
     closeSheet("detail");
     renderLibrary();
